@@ -20,7 +20,6 @@ package support;
 import discord4j.core.event.domain.message.MessageCreateEvent;
 import reactor.core.publisher.Mono;
 
-public abstract class EventHandler {
-
-    public abstract Mono<Void> onMessageCreate(MessageCreateEvent event);
+public interface EventHandler {
+    Mono<Void> onMessageCreate(MessageCreateEvent event);
 }
