@@ -3,7 +3,7 @@ package model;
 public enum CommandsRegistry
 
 {
-    RECAP_START("Angel, recap start", "Starts a recap of the"),
+    RECAP_START("Angel, recap start", "Starts a recap round for a scrim"),
     HELP("Angel, help", "Prints this help"),
     SETUP("Angel, setup", "Initial bot setup with creation of a channel");
 
