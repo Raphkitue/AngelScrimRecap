@@ -16,6 +16,7 @@ import java.util.stream.Collectors;
 import reactor.core.publisher.Mono;
 import support.AngelBot;
 import support.AngelScrim;
+import support.AngelTeam;
 import support.EventHandler;
 
 public class Main
@@ -27,6 +28,7 @@ public class Main
 
         List<EventHandler> eventHandlers = new ArrayList<>();
         List<EventHandler> teamCommands = new ArrayList<>();
+        List<EventHandler> channelCommands = new ArrayList<>();
 
         eventHandlers.add(AngelBot::logMessages);
         eventHandlers.add(AngelBot::onSetupMessage);
@@ -34,12 +36,22 @@ public class Main
 
         teamCommands.add(AngelScrim::onScrimMessage);
 
+        channelCommands.add(AngelTeam::onTeamCreate);
+        channelCommands.add(AngelTeam::onTeamDelete);
+        channelCommands.add(AngelTeam::onTeamAddRole);
+        channelCommands.add(AngelTeam::onTeamAddUser);
+        channelCommands.add(AngelTeam::onTeamReset);
+        channelCommands.add(AngelTeam::onTeamRemoveUser);
+        channelCommands.add(AngelTeam::onTeamSetCaptain);
+        channelCommands.add(AngelTeam::onTeamsShow);
+
         assert client != null;
 
         Mono.when(
             readyHandler(client),
             commandHandler(client, eventHandlers),
-            teamCommandHandler(client, teamCommands)
+            teamCommandHandler(client, teamCommands),
+            correctChannelCommandHandler(client, channelCommands)
         )
             .subscribe();
 

@@ -1,12 +1,13 @@
-package model.installs;
+package repository.installs;
 
 import java.util.HashMap;
 import java.util.Map;
+import model.Install;
 
 public class InMemoryInstalls implements IInstallsRepository
 {
 
-    private final Map<String, String> installs = new HashMap<>();
+    protected Map<String, String> installs = new HashMap<>();
 
     @Override
     public Install getInstallForServer(String serverId)

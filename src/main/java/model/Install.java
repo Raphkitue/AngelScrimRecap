@@ -1,4 +1,7 @@
-package model.installs;
+package model;
+
+
+
 
 public class Install
 {

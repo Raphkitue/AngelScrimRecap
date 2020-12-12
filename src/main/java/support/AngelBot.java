@@ -7,13 +7,10 @@ import app.DependenciesContainer;
 import discord4j.core.GatewayDiscordClient;
 import discord4j.core.event.domain.lifecycle.ReadyEvent;
 import discord4j.core.event.domain.message.MessageCreateEvent;
-import discord4j.core.object.entity.channel.MessageChannel;
 import java.util.Arrays;
-import java.util.HashMap;
-import java.util.Map;
-import model.CommandsRegistry;
-import model.installs.IInstallsRepository;
-import model.installs.Install;
+import model.commands.Command;
+import repository.installs.IInstallsRepository;
+import model.Install;
 import reactor.core.publisher.Mono;
 import reactor.util.Logger;
 import reactor.util.Loggers;
@@ -40,7 +37,7 @@ public class AngelBot
 
     public static Mono<Void> onSetupMessage(MessageCreateEvent event)
     {
-        String command = CommandsRegistry.SETUP.getCommand();
+        String command = Command.SETUP.getCommand();
         if (messageStartsWith(event, command))
         {
             log.info("Creating channel for server");
@@ -69,17 +66,24 @@ public class AngelBot
 
     public static Mono<Void> onHelp(MessageCreateEvent event)
     {
-        String command = CommandsRegistry.HELP.getCommand();
-        log.info(command);
+        String command = Command.HELP.getCommand();
         if (messageStartsWith(event, command))
         {
+            log.info(command);
             StringBuilder sb = new StringBuilder();
 
             sb.append("Here is the help for Angel bot: \n");
             sb.append("Call the bot with \"Angel,\" and add one of the following commands \n");
 
-            Arrays.stream(CommandsRegistry.values())
-                .forEach(e -> sb.append(" - ").append(e.getCommand()).append(": " ).append(e.getDescription()).append('\n'));
+            Arrays.stream(Command.values())
+                .forEach(e -> {
+                    sb.append(" - ")
+                        .append(e.getCommand());
+                    e.getArguments().forEach(f -> sb.append(" ").append(f.toString()));
+                    sb.append(": ")
+                        .append(e.getDescription())
+                        .append('\n');
+                });
 
             sendMessage(event.getMessage().getChannel(), sb.toString());
         }

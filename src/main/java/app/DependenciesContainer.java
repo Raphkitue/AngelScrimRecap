@@ -1,14 +1,19 @@
 package app;
 
-import model.installs.IInstallsRepository;
-import model.installs.InMemoryInstalls;
-import model.scrims.teams.ITeamsRepository;
-import model.scrims.teams.InMemoryTeams;
+import repository.installs.IInstallsRepository;
+import repository.installs.JSONInstalls;
+import repository.teams.ITeamsRepository;
+import repository.teams.InMemoryTeams;
+import repository.teams.JSONTeams;
+import repository.users.IUsersRepository;
+import repository.users.InMemoryUsers;
 
 public class DependenciesContainer
 {
-    private static final IInstallsRepository installsRepo = new InMemoryInstalls();
-    private static final ITeamsRepository teamsRepo = new InMemoryTeams();
+
+    private static final IInstallsRepository installsRepo = new JSONInstalls("installs.json");
+    private static final ITeamsRepository teamsRepo = new JSONTeams("teams.json");
+    private static final IUsersRepository usersRepo = new InMemoryUsers();
 
     private static final DependenciesContainer instance = new DependenciesContainer();
 
@@ -29,5 +34,10 @@ public class DependenciesContainer
     public ITeamsRepository getTeamsRepo()
     {
         return teamsRepo;
+    }
+
+    public static IUsersRepository getUsersRepo()
+    {
+        return usersRepo;
     }
 }

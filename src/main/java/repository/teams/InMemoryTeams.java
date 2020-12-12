@@ -1,10 +1,11 @@
-package model.scrims.teams;
+package repository.teams;
 
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
+import model.scrims.Team;
 
 public class InMemoryTeams implements ITeamsRepository
 {
@@ -47,8 +48,17 @@ public class InMemoryTeams implements ITeamsRepository
     }
 
     @Override
-    public void deleteTeam(String teamId)
+    public boolean createTeam(Team team)
     {
-        teams.remove(teamId);
+        if(teams.containsKey(team.getId()))
+            return false;
+        teams.put(team.getId(), team);
+        return true;
+    }
+
+    @Override
+    public boolean deleteTeam(String teamId)
+    {
+        return teams.remove(teamId) != null;
     }
 }

@@ -1,6 +1,7 @@
-package model.scrims.teams;
+package repository.teams;
 
 import java.util.List;
+import model.scrims.Team;
 
 public interface ITeamsRepository
 {
@@ -12,5 +13,7 @@ public interface ITeamsRepository
 
     void updateTeam(Team team);
 
-    void deleteTeam(String teamId);
+    boolean createTeam(Team team);
+
+    boolean deleteTeam(String teamId);
 }

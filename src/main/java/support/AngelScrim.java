@@ -1,12 +1,11 @@
 package support;
 
 import static Util.MessageUtils.messageStartsWith;
-import static Util.MessageUtils.sendMessage;
 
 import app.DependenciesContainer;
 import discord4j.core.event.domain.message.MessageCreateEvent;
-import model.CommandsRegistry;
-import model.installs.IInstallsRepository;
+import model.commands.Command;
+import repository.installs.IInstallsRepository;
 import reactor.core.publisher.Mono;
 import reactor.util.Logger;
 import reactor.util.Loggers;
@@ -19,10 +18,10 @@ public class AngelScrim
 
     public static Mono<Void> onScrimMessage(MessageCreateEvent event)
     {
-        String command = CommandsRegistry.RECAP_START.getCommand();
-        log.info(command);
+        String command = Command.RECAP_START.getCommand();
         if (messageStartsWith(event, command))
         {
+            log.info(command);
 
         }
         return Mono.empty();

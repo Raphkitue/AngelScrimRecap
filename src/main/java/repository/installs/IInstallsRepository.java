@@ -1,4 +1,6 @@
-package model.installs;
+package repository.installs;
+
+import model.Install;
 
 public interface IInstallsRepository
 {
