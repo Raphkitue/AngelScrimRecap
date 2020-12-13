@@ -11,6 +11,8 @@ import java.net.InetSocketAddress;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ThreadPoolExecutor;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import reactor.core.publisher.Mono;
@@ -60,7 +62,10 @@ public class Main
         )
             .subscribe();
 
+        ThreadPoolExecutor threadPoolExecutor = (ThreadPoolExecutor) Executors.newFixedThreadPool(10);
         HttpServer server = HttpServer.create(new InetSocketAddress("0.0.0.0", 8001), 0);
+        server.createContext("/", new DummyHandler());
+        server.setExecutor(threadPoolExecutor);
         server.start();
     }
 
