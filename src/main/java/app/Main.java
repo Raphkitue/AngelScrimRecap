@@ -23,7 +23,7 @@ public class Main
 {
     public static void main(String[] args) throws IOException
     {
-        GatewayDiscordClient client = DiscordClient.create("Nzg2NjM3ODkwNjA3Nzc1ODA0.X9JToA.WIS3I5nCw8nUyBm4nQKDcORJDck").login().block();
+        GatewayDiscordClient client = DiscordClient.create(System.getProperty("token")).login().block();
 
 
         List<EventHandler> eventHandlers = new ArrayList<>();
@@ -32,9 +32,14 @@ public class Main
 
         eventHandlers.add(AngelBot::logMessages);
         eventHandlers.add(AngelBot::onSetupMessage);
+        eventHandlers.add(AngelBot::onSetupVod);
+        eventHandlers.add(AngelBot::onSetupRecap);
         eventHandlers.add(AngelBot::onHelp);
 
-        teamCommands.add(AngelScrim::onScrimMessage);
+        teamCommands.add(AngelScrim::onScrimStart);
+        teamCommands.add(AngelScrim::onRecapAddLine);
+        teamCommands.add(AngelScrim::onRecapAddReplay);
+        teamCommands.add(AngelScrim::onRecapFinish);
 
         channelCommands.add(AngelTeam::onTeamCreate);
         channelCommands.add(AngelTeam::onTeamDelete);
@@ -50,8 +55,8 @@ public class Main
         Mono.when(
             readyHandler(client),
             commandHandler(client, eventHandlers),
-            teamCommandHandler(client, teamCommands),
-            correctChannelCommandHandler(client, channelCommands)
+            teamMemberMessages(client, teamCommands),
+            correctChannelMessages(client, channelCommands)
         )
             .subscribe();
 
@@ -74,15 +79,16 @@ public class Main
         return baseCommandHandler(client, eventHandlers, MessageFilters::installedFilter);
     }
 
-    public static Mono<Void> correctChannelCommandHandler(GatewayDiscordClient client, List<EventHandler> eventHandlers)
+    public static Mono<Void> correctChannelMessages(GatewayDiscordClient client, List<EventHandler> eventHandlers)
     {
         return baseCommandHandler(client, eventHandlers, MessageFilters::inCorrectChannelFilter);
     }
 
-    public static Mono<Void> teamCommandHandler(GatewayDiscordClient client, List<EventHandler> eventHandlers)
+    public static Mono<Void> teamMemberMessages(GatewayDiscordClient client, List<EventHandler> eventHandlers)
     {
-        return baseCommandHandler(client, eventHandlers, MessageFilters::inCorrectChannelFilter, MessageFilters::teamReadyFilter);
+        return baseCommandHandler(client, eventHandlers, MessageFilters::inCorrectChannelFilter, MessageFilters::teamReadyFilter, MessageFilters::teamFilter);
     }
+
 
     @SafeVarargs
     public static Mono<Void> baseCommandHandler(GatewayDiscordClient client, List<EventHandler> eventHandlers, Predicate<MessageCreateEvent> ...predicates)

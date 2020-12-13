@@ -3,6 +3,7 @@ package repository.installs;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.util.HashMap;
 import model.Install;
 import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
@@ -21,14 +22,20 @@ public class JSONInstalls extends InMemoryInstalls
         {
 
             //Read JSON file
-            Object obj = jsonParser.parse(reader);
+            JSONObject obj = (JSONObject) jsonParser.parse(reader);
 
-            JSONObject installs = (JSONObject) obj;
+            JSONObject installs = (JSONObject) obj.get("installs");
+            JSONObject vods = (JSONObject) obj.get("vod");
+            JSONObject recaps = (JSONObject) obj.get("recaps");
 
             this.installs.putAll(installs);
+            this.vods.putAll(vods);
+            this.recaps.putAll(recaps);
 
         } catch (Exception e) {
-            e.printStackTrace();
+            installs = new HashMap<>();
+            vods = new HashMap<>();
+            recaps = new HashMap<>();
         }
     }
 
@@ -37,7 +44,11 @@ public class JSONInstalls extends InMemoryInstalls
     {
         super.updateInstall(install);
         try (FileWriter file = new FileWriter(fileName)) {
-            file.write(new JSONObject(installs).toJSONString());
+            JSONObject jsonObject = new JSONObject();
+            jsonObject.put("installs", installs);
+            jsonObject.put("vod", vods);
+            jsonObject.put("recaps", recaps);
+            file.write(jsonObject.toJSONString());
             file.flush();
         } catch (IOException e) {
             e.printStackTrace();

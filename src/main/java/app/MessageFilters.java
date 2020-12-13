@@ -3,6 +3,7 @@ package app;
 import static Util.MessageUtils.getServerIdFromMessage;
 
 import discord4j.core.event.domain.message.MessageCreateEvent;
+import model.scrims.Team;
 import reactor.util.Logger;
 import reactor.util.Loggers;
 import repository.installs.IInstallsRepository;
@@ -23,7 +24,7 @@ public class MessageFilters
 
     public static boolean inCorrectChannelFilter(MessageCreateEvent event)
     {
-        return event.getMessage().getChannelId()
+        return installedFilter(event) && event.getMessage().getChannelId()
             .asString().equals(
                 installsRepo.getInstallForServer(getServerIdFromMessage(event)).getChannelId()
             );
@@ -32,6 +33,13 @@ public class MessageFilters
     public static boolean teamReadyFilter(MessageCreateEvent event)
     {
         return !teamsRepo.getTeamsForServer(getServerIdFromMessage(event)).isEmpty();
+    }
+
+    public static boolean teamFilter(MessageCreateEvent event)
+    {
+        return teamsRepo.getTeamsForServer(getServerIdFromMessage(event)).stream()
+            .flatMap(team -> team.getMembers().stream())
+            .anyMatch(user -> user.getUserId().equals(event.getMessage().getAuthor().get().getId().asString()));
     }
 
 }

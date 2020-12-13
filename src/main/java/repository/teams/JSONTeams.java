@@ -3,20 +3,14 @@ package repository.teams;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
-import java.util.List;
+import java.util.HashMap;
 import java.util.stream.Collectors;
-import model.Install;
 import model.scrims.Team;
-import model.scrims.User;
-import org.graalvm.compiler.lir.LIRInstruction;
-import org.graalvm.compiler.lir.LIRInstruction.Use;
 import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
 import reactor.util.Logger;
 import reactor.util.Loggers;
-import repository.installs.InMemoryInstalls;
-import support.AngelBot;
 
 public class JSONTeams extends InMemoryTeams
 {
@@ -41,43 +35,17 @@ public class JSONTeams extends InMemoryTeams
 
             teams.forEach(object -> {
                 JSONObject jsonObject = (JSONObject) object;
-                String key = (String) jsonObject.keySet().stream().findFirst().get();
-                this.teams.put(key, teamFromJson((JSONObject) jsonObject.get(key)));
+                String key = (String) jsonObject.keySet().stream().filter(e -> !((String)e).isEmpty()).findFirst().get();
+                this.teams.put(key, (Team) new Team().fromJson((JSONObject) jsonObject.get(key)));
             });
 
 
         } catch (Exception e)
         {
-            e.printStackTrace();
+            teams = new HashMap<>();
         }
     }
 
-    private Team teamFromJson(JSONObject teamObject)
-    {
-        return new Team(
-            (String) teamObject.get("serverId"),
-            (String) teamObject.get("name"),
-            ((List<JSONObject>) teamObject.get("members")).stream().map(j -> new User((String) j.get("id"), (String) j.get("name"), (String) j.get("role"))).collect(Collectors.toSet())
-        );
-    }
-
-    private JSONObject teamToJson(Team team)
-    {
-        JSONObject jsonObject = new JSONObject();
-        jsonObject.put("serverId", team.getServerId());
-        jsonObject.put("name", team.getName());
-        jsonObject.put("members", team.getMembers().stream().map(this::userToJson).collect(Collectors.toList()));
-        return jsonObject;
-    }
-
-    private JSONObject userToJson(User user)
-    {
-        JSONObject jsonObject = new JSONObject();
-        jsonObject.put("id", user.getUserId());
-        jsonObject.put("name", user.getName());
-        jsonObject.put("role", user.getRole());
-        return jsonObject;
-    }
 
     @Override
     public void updateTeam(Team team)
@@ -104,7 +72,7 @@ public class JSONTeams extends InMemoryTeams
             JSONObject jsonObject = new JSONObject();
             jsonObject.put("teams", teams.entrySet().stream().map(entry -> {
                 JSONObject jsonObject1 = new JSONObject();
-                jsonObject1.put(entry.getKey(), teamToJson(entry.getValue()));
+                jsonObject1.put(entry.getKey(), entry.getValue().toJson());
                 return jsonObject1;
             }).collect(Collectors.toList()));
 

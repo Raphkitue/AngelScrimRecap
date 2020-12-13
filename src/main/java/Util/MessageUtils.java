@@ -3,6 +3,7 @@ package Util;
 import discord4j.common.util.Snowflake;
 import discord4j.core.event.domain.message.MessageCreateEvent;
 import discord4j.core.object.entity.Message;
+import discord4j.core.object.entity.channel.Channel;
 import discord4j.core.object.entity.channel.MessageChannel;
 import java.util.function.BiConsumer;
 import model.commands.Command;
@@ -22,11 +23,16 @@ public class MessageUtils
         return content.startsWith(command);
     }
 
-    public static void sendMessage(Mono<MessageChannel> channel, String message)
+    public static Message sendMessage(Mono<MessageChannel> channel, String message)
     {
-        channel.flatMap(
+        return channel.flatMap(
             e -> e.createMessage(message)
         ).block();
+    }
+
+    public static Message sendMessage(MessageChannel channel, String message)
+    {
+        return channel.createMessage(message).block();
     }
 
 

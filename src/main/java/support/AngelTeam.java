@@ -31,6 +31,11 @@ public class AngelTeam
     {
         return commandMessage(event, Command.TEAM_CREATE, (command, e) -> {
             String teamname = command.getMandatoryArgument(e.getMessage().getContent(), "teamname");
+            if (teamname == null)
+            {
+                sendMessage(e.getMessage().getChannel(), "Please put a team name");
+                return;
+            }
 
             if (teamsRepository.createTeam(new Team(e.getGuildId().get().asString(), teamname)))
             { sendMessage(e.getMessage().getChannel(), "Team " + teamname + " created !"); } else
@@ -108,7 +113,7 @@ public class AngelTeam
     {
         return commandMessage(event, Command.TEAM_ADD_ROLE, (command, e) -> {
             String serverId = e.getGuildId().get().asString();
-            String rolename = command.getMandatoryArgument(e.getMessage().getContent(), "rolename");
+            String roleId = command.getMandatoryArgument(e.getMessage().getContent(), "@rolename");
 
             Team team = getTeamFromArgument(command, serverId, e.getMessage().getContent());
             if (team == null)
@@ -122,7 +127,7 @@ public class AngelTeam
             e.getMessage()
                 .getGuild()
                 .flatMapMany(guild -> guild.getMembers(EntityRetrievalStrategy.REST))
-                .filter(member -> member.getRoles().log(log).any(role -> role.getName().equals(rolename)).block())
+                .filter(member -> member.getRoles(EntityRetrievalStrategy.REST).any(role -> role.getId().asString().equals(roleId)).block())
                 .flatMap(member -> Mono.just(teamMembers.add(new User(member.getId().asString(), member.getUsername(), "player"))))
                 .blockLast();
 

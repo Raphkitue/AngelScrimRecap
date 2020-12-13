@@ -1,11 +1,14 @@
 package model.scrims;
 
+import Util.Jsonable;
 import java.util.Objects;
+import org.json.simple.JSONObject;
 
-public class User
+public class User implements Jsonable
 {
-    private final String userId;
-    private final String name;
+
+    private String userId;
+    private String name;
     private String role;
 
     public User(String userId, String name, String role)
@@ -14,6 +17,7 @@ public class User
         this.name = name;
         this.role = role;
     }
+
 
     public String getUserId()
     {
@@ -35,6 +39,12 @@ public class User
         this.role = role;
     }
 
+
+    public void setName(String name)
+    {
+        this.name = name;
+    }
+
     @Override
     public boolean equals(Object o)
     {
@@ -46,9 +56,32 @@ public class User
         return Objects.equals(userId, user.userId);
     }
 
+    public User()
+    {
+    }
+
     @Override
     public int hashCode()
     {
         return Objects.hash(userId);
+    }
+
+    @Override
+    public JSONObject toJson()
+    {
+        JSONObject jsonObject = new JSONObject();
+        jsonObject.put("id", getUserId());
+        jsonObject.put("name", getName());
+        jsonObject.put("role", getRole());
+        return jsonObject;
+    }
+
+    @Override
+    public Jsonable fromJson(JSONObject j)
+    {
+        userId = (String) j.get("id");
+        name = (String) j.get("name");
+        role = (String) j.get("role");
+        return this;
     }
 }

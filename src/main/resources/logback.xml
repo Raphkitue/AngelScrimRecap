@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <configuration scan="true">
-    <logger name="io.netty" level="DEBUG"/>
-    <logger name="reactor.netty" level="DEBUG"/>
+    <logger name="io.netty" level="INFO"/>
+    <logger name="reactor.netty" level="INFO"/>
     <logger name="discord4j" level="DEBUG"/>
 
     <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">

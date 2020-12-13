@@ -1,23 +1,26 @@
 package model.commands;
 
 import java.util.Arrays;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
+import model.commands.Argument.Necessity;
 import reactor.util.Logger;
 import reactor.util.Loggers;
 
 public enum Command
-
 {
     RECAP_START("Angel, recap start", "Starts a recap round for a scrim", Argument.optional("teamname")),
-    RECAP_ADD_LINE("Angel, recap player", "Add recap for you (or a player if you're captain", Argument.optional("@username")),
-    RECAP_ADD_REPLAY("Angel, recap scrim replay", "Add the code for a map played", Argument.mandatory("mapname"), Argument.mandatory("replaycode")),
-    RECAP_FINISH("Angel, recap finish", "Ends a recap", Argument.optional("teamname")),
+    RECAP_ADD_LINE("Angel, recap add", "Add recap for you (or a player if you're captain)", Argument.optional("@username")),
+    RECAP_ADD_REPLAY("Angel, recap replay", "Add the code for a map played", Argument.mandatory("mapname"), Argument.mandatory("replaycode")),
+    RECAP_FINISH("Angel, recap finish", "Ends a recap"),
 
-    SETUP("Angel, setup", "Initial bot setup with creation of a channel"),
+    SETUP_VOD("Angel, setup vod", "Sets up a vod channel", Argument.mandatory("#channel")),
+    SETUP_RECAP("Angel, setup recap", "Sets up a recap channel", Argument.mandatory("#channel")),
+    SETUP("Angel, setup bot", "Initial bot setup with creation of a channel", Argument.optional("#channel")),
 
-    TEAM_ADD_ROLE("Angel, team add role", "Add all the users of a group to a team", Argument.mandatory("rolename"), Argument.optional("teamname")),
+    TEAM_ADD_ROLE("Angel, team add role", "Add all the users of a group to a team", Argument.mandatory("@rolename"), Argument.optional("teamname")),
     TEAM_ADD_USER("Angel, team add player", "Add a player to a team", Argument.mandatory("@username"), Argument.optional("teamname")),
     TEAM_REMOVE_USER("Angel, team remove", "Remove a player from a team", Argument.mandatory("@username"), Argument.optional("teamname")),
     TEAM_SET_CAPTAIN("Angel, team set captain", "Sets the captain of a team", Argument.mandatory("@username"), Argument.optional("teamname")),
@@ -34,7 +37,7 @@ public enum Command
     private final String description;
     private final List<Argument> arguments;
 
-    Command(String command, String description, Argument ...arguments)
+    Command(String command, String description, Argument... arguments)
     {
         this.command = command;
         this.description = description;
@@ -53,17 +56,17 @@ public enum Command
 
     public String parseMention(String mention)
     {
-        return mention.contains("<@!") ? mention.replace("<@!","").replace(">", "") : parseRoleMention(mention);
+        return mention.contains("<@!") ? mention.replace("<@!", "").replace(">", "") : parseRoleMention(mention);
     }
 
     public String parseChannel(String mention)
     {
-        return mention.contains("<#") ? mention.replace("<#","").replace(">", "") : null;
+        return mention.contains("<#") ? mention.replace("<#", "").replace(">", "") : null;
     }
 
     public String parseRoleMention(String mention)
     {
-        return mention.contains("<@&") ?  mention.replace("<@&","").replace(">", "") : null;
+        return mention.contains("<@&") ? mention.replace("<@&", "").replace(">", "") : null;
     }
 
     public String parseArgument(String message, Argument arg)
@@ -73,17 +76,17 @@ public enum Command
             .map(String::trim)
             .collect(Collectors.toList());
 
-
         for (int i = 0; i < arguments.size(); i++)
         {
-            if (arguments.get(i).getName().equals(arg.getName())){
+            if (arguments.get(i).getName().equals(arg.getName()))
+            {
 
-                if(args.size() > i)
+                if (args.size() > i)
                 {
                     if (arg.getName().contains("@"))
-                        return parseMention(args.get(i));
+                    { return parseMention(args.get(i)); }
                     if (arg.getName().contains("#"))
-                        return parseChannel(args.get(i));
+                    { return parseChannel(args.get(i)); }
 
                     return args.get(i);
                 }
@@ -95,12 +98,31 @@ public enum Command
 
     public Optional<String> getArgument(String message, String argname)
     {
-       return Optional.ofNullable(parseArgument(message, Argument.any(argname)));
+        return Optional.ofNullable(parseArgument(message, Argument.any(argname)));
+    }
+
+    public String getText(String message)
+    {
+        String args = message.replace(command, "");
+
+        Iterator<Argument> iterator = arguments.iterator();
+
+        return Arrays.stream(args.split("\\s+"))
+            .filter(s -> !s.isEmpty())
+            .dropWhile(s -> {
+                Argument arg;
+                if (iterator.hasNext())
+                { arg = iterator.next(); } else
+                { return false; }
+                return arg.getNecessity().equals(Necessity.MANDATORY)
+                    || parseArgument(message, arg) != null;
+            })
+            .collect(Collectors.joining(" "));
     }
 
     public String getMandatoryArgument(String message, String argname)
     {
-       return parseArgument(message, Argument.any(argname));
+        return parseArgument(message, Argument.any(argname));
     }
 
     public List<Argument> getArguments()
