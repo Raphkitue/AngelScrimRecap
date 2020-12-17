@@ -1,5 +1,7 @@
 package model.commands;
 
+import static Util.LocaleUtils.getLocaleString;
+
 import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
@@ -11,40 +13,38 @@ import reactor.util.Loggers;
 
 public enum Command
 {
-    RECAP_START("recap start", "Starts a recap round for a scrim", Argument.optional("teamname")),
-    RECAP_ADD_LINE("recap add", "Add recap for you (or a player if you're captain)", Argument.optional("@username")),
-    RECAP_ADD_REPLAY("recap replay", "Add the code for a map played", Argument.mandatory("mapname"), Argument.mandatory("replaycode")),
-    RECAP_FINISH("recap finish", "Ends a recap"),
+    RECAP_START("recap start", Argument.optional("teamname")),
+    RECAP_ADD_LINE("recap add", Argument.optional("@username")),
+    RECAP_ADD_REPLAY("recap replay", Argument.mandatory("mapname"), Argument.mandatory("replaycode")),
+    RECAP_FINISH("recap finish"),
 
-    SETUP_VOD("setup vod", "Sets up a vod channel", Argument.mandatory("#channel")),
-    SETUP_LANGUAGE("setup lang", "Sets up bot language", Argument.mandatory("lang")),
-    SETUP_DELAY("setup vote", "Sets up vote delay in minutes", Argument.mandatory("delay")),
-    SETUP_RECAP("setup recap", "Sets up a recap channel", Argument.mandatory("#channel")),
-    SETUP("setup bot", "Initial bot setup with creation of a channel", Argument.optional("#channel")),
+    SETUP_VOD("setup vod", Argument.mandatory("#channel")),
+    SETUP_LANGUAGE("setup lang", Argument.mandatory("lang")),
+    SETUP_DELAY("setup vote", Argument.mandatory("delay")),
+    SETUP_RECAP("setup recap", Argument.mandatory("#channel")),
+    SETUP("setup bot", Argument.optional("#channel")),
 
-    TEAM_ADD_ROLE("team add role", "Add all the users of a group to a team", Argument.mandatory("@rolename"), Argument.optional("teamname")),
-    TEAM_ADD_USER("team add player", "Add a player to a team", Argument.mandatory("@username"), Argument.optional("teamname")),
-    TEAM_REMOVE_USER("team remove", "Remove a player from a team", Argument.mandatory("@username"), Argument.optional("teamname")),
-    TEAM_SET_CAPTAIN("team set captain", "Sets the captain of a team", Argument.mandatory("@username"), Argument.optional("teamname")),
-    TEAM_CREATE("team create", "Create a team", Argument.mandatory("teamname")),
-    TEAM_DELETE("team delete", "Delete a team", Argument.mandatory("teamname")),
-    TEAM_RESET("team reset", "Resets a team", Argument.mandatory("teamname")),
-    TEAMS_SHOW("team show", "Shows teams compositions", Argument.optional("teamname")),
+    TEAM_ADD_ROLE("team add role", Argument.mandatory("@rolename"), Argument.optional("teamname")),
+    TEAM_ADD_USER("team add player", Argument.mandatory("@username"), Argument.optional("teamname")),
+    TEAM_REMOVE_USER("team remove", Argument.mandatory("@username"), Argument.optional("teamname")),
+    TEAM_SET_CAPTAIN("team set captain", Argument.mandatory("@username"), Argument.optional("teamname")),
+    TEAM_CREATE("team create", Argument.mandatory("teamname")),
+    TEAM_DELETE("team delete", Argument.mandatory("teamname")),
+    TEAM_RESET("team reset", Argument.mandatory("teamname")),
+    TEAMS_SHOW("team show", Argument.optional("teamname")),
 
-    HELP("help", "Prints this help");
+    HELP("help");
 
     public static final List<String> PREFIXES = Arrays.asList("Angel,", "ag", "under");
 
     private static final Logger log = Loggers.getLogger(Command.class);
 
     private final String command;
-    private final String description;
     private final List<Argument> arguments;
 
-    Command(String command, String description, Argument... arguments)
+    Command(String command,  Argument... arguments)
     {
         this.command = command;
-        this.description = description;
         this.arguments = Arrays.asList(arguments);
     }
 
@@ -58,9 +58,9 @@ public enum Command
         return command;
     }
 
-    public String getDescription()
+    public String getDescription(String serverId)
     {
-        return description;
+        return getLocaleString(serverId, this.name());
     }
 
     public String removeCommand(String message)

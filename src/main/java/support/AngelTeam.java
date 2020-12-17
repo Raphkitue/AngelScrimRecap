@@ -30,16 +30,18 @@ public class AngelTeam
     public static Mono<Void> onTeamCreate(MessageCreateEvent event)
     {
         return commandMessage(event, Command.TEAM_CREATE, (command, e) -> {
+            String serverId = e.getGuildId().get().asString();
+
             String teamname = command.getMandatoryArgument(e.getMessage().getContent(), "teamname");
             if (teamname == null)
             {
-                sendMessage(e.getMessage().getChannel(), "Please put a team name");
+                sendMessage(e.getMessage().getChannel(), serverId, "team_put_name");
                 return;
             }
 
-            if (teamsRepository.createTeam(new Team(e.getGuildId().get().asString(), teamname)))
-            { sendMessage(e.getMessage().getChannel(), "Team " + teamname + " created !"); } else
-            { sendMessage(e.getMessage().getChannel(), "Team " + teamname + " already existing on this server !"); }
+            if (teamsRepository.createTeam(new Team(serverId, teamname)))
+            { sendMessage(e.getMessage().getChannel(), serverId, "team_created", teamname); } else
+            { sendMessage(e.getMessage().getChannel(), serverId,  "team_already_exists", teamname); }
 
         });
     }
@@ -47,11 +49,12 @@ public class AngelTeam
     public static Mono<Void> onTeamDelete(MessageCreateEvent event)
     {
         return commandMessage(event, Command.TEAM_DELETE, (command, e) -> {
+            String serverId = e.getGuildId().get().asString();
             String teamname = command.getMandatoryArgument(e.getMessage().getContent(), "teamname");
 
-            if (teamsRepository.deleteTeam(Team.getTeamId(teamname, e.getGuildId().get().asString())))
-            { sendMessage(e.getMessage().getChannel(), "Team " + teamname + " deleted !"); } else
-            { sendMessage(e.getMessage().getChannel(), "Team " + teamname + " didn't exist on this server !"); }
+            if (teamsRepository.deleteTeam(Team.getTeamId(teamname, serverId)))
+            { sendMessage(e.getMessage().getChannel(), serverId, "team_deleted", teamname); } else
+            { sendMessage(e.getMessage().getChannel(), serverId,  "team_doesnt_exist", teamname); }
         });
     }
 
@@ -88,10 +91,8 @@ public class AngelTeam
 
     private static void displayTeam(MessageCreateEvent event, Team team)
     {
-        sendMessage(event.getMessage().getChannel(), "Team "
-            + team.getName()
-            + ":\n"
-            + team.getMembers().stream().map(user -> user.getName() + ": " + user.getRole() + "\n").collect(Collectors.joining())
+        sendMessage(event.getMessage().getChannel(), team.getServerId(), "team_display", team.getName()
+            , team.getMembers().stream().map(user -> user.getName() + ": " + user.getRole() + "\n").collect(Collectors.joining())
         );
     }
 
@@ -103,7 +104,7 @@ public class AngelTeam
             Team team = getTeamFromArgument(command, serverId, e.getMessage().getContent());
 
             if (team == null)
-            { sendMessage(e.getMessage().getChannel(), "Team couldn't be found or there are multiple teams registered"); } else
+            { sendMessage(e.getMessage().getChannel(), serverId, "team_not_found"); } else
             { displayTeam(event, team);}
 
         });
@@ -118,7 +119,7 @@ public class AngelTeam
             Team team = getTeamFromArgument(command, serverId, e.getMessage().getContent());
             if (team == null)
             {
-                sendMessage(e.getMessage().getChannel(), "Team couldn't be found or there are multiple teams registered");
+                sendMessage(e.getMessage().getChannel(), serverId, "team_not_found");
                 return;
             }
 
@@ -146,7 +147,7 @@ public class AngelTeam
             Team team = getTeamFromArgument(command, serverId, e.getMessage().getContent());
             if (team == null)
             {
-                sendMessage(e.getMessage().getChannel(), "Team couldn't be found or there are multiple teams registered");
+                sendMessage(e.getMessage().getChannel(), serverId, "team_not_found");
                 return;
             }
 
@@ -155,7 +156,7 @@ public class AngelTeam
             e.getMessage()
                 .getGuild()
                 .flatMap(guild -> guild.getMemberById(Snowflake.of(username)))
-                .doOnError(throwable -> sendMessage(event.getMessage().getChannel(), "Username is incorrectly tagged"))
+                .doOnError(throwable -> sendMessage(event.getMessage().getChannel(), serverId, "incorrect_user_tag"))
                 .onErrorStop()
                 .flatMap(member -> Mono.just(teamMembers.add(new User(member.getId().asString(), member.getUsername(), "player"))))
                 .block();
@@ -175,7 +176,7 @@ public class AngelTeam
             Team team = getTeamFromArgument(command, serverId, e.getMessage().getContent());
             if (team == null)
             {
-                sendMessage(e.getMessage().getChannel(), "Team couldn't be found or there are multiple teams registered");
+                sendMessage(e.getMessage().getChannel(), serverId, "team_not_found");
                 return;
             }
 
@@ -202,7 +203,7 @@ public class AngelTeam
             Team team = getTeamFromArgument(command, serverId, e.getMessage().getContent());
             if (team == null)
             {
-                sendMessage(e.getMessage().getChannel(), "Team couldn't be found or there are multiple teams registered");
+                sendMessage(e.getMessage().getChannel(), serverId, "team_not_found");
                 return;
             }
 

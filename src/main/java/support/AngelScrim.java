@@ -1,5 +1,6 @@
 package support;
 
+import static Util.LocaleUtils.getLocaleString;
 import static Util.MessageUtils.commandMessage;
 import static Util.MessageUtils.sendMessage;
 
@@ -87,7 +88,7 @@ public class AngelScrim
             Team team = getTeamFromArgument(command, serverId, e.getMessage().getContent());
             if (team == null)
             {
-                sendMessage(e.getMessage().getChannel(), "Team couldn't be found or there are multiple teams registered");
+                sendMessage(e.getMessage().getChannel(), serverId , "team_not_found");
                 return;
             }
 
@@ -97,7 +98,7 @@ public class AngelScrim
 
             if (currentRecaps.containsKey(serverId))
             {
-                sendMessage(e.getMessage().getChannel(), "Recap already running");
+                sendMessage(e.getMessage().getChannel(), serverId, "recap_running");
                 return;
             }
 
@@ -107,9 +108,6 @@ public class AngelScrim
 
             StringBuilder sb = new StringBuilder();
 
-            sb.append("Scrim was created for : ").append(dateFormat).append("\n");
-            sb.append("Use the following commands\n");
-
             Arrays.stream(Command.values())
                 .filter(f -> f.getCommand().contains("recap"))
                 .filter(f -> !f.equals(Command.RECAP_START))
@@ -118,11 +116,11 @@ public class AngelScrim
                         .append(f.getCommand());
                     f.getArguments().forEach(g -> sb.append(" ").append(g.toString()));
                     sb.append(": ")
-                        .append(f.getDescription())
+                        .append(f.getDescription(serverId))
                         .append('\n');
                 });
 
-            sendMessage(event.getMessage().getChannel(), sb.toString());
+            sendMessage(event.getMessage().getChannel(), serverId, "scrim_created_intro", dateFormat, sb.toString());
 
         });
     }
@@ -138,7 +136,7 @@ public class AngelScrim
             Recap recap = currentRecaps.get(serverId);
             if (recap == null)
             {
-                sendMessage(e.getMessage().getChannel(), "Please start a recap first");
+                sendMessage(e.getMessage().getChannel(), serverId, "recap_not_running");
                 return;
             }
 
@@ -158,7 +156,7 @@ public class AngelScrim
             Recap recap = currentRecaps.get(serverId);
             if (recap == null)
             {
-                sendMessage(e.getMessage().getChannel(), "Please start a recap first");
+                sendMessage(e.getMessage().getChannel(), serverId,  "recap_not_running");
                 return;
             }
 
@@ -195,7 +193,7 @@ public class AngelScrim
             Recap recap = currentRecaps.get(serverId);
             if (recap == null)
             {
-                sendMessage(e.getMessage().getChannel(), "Please start a recap first");
+                sendMessage(e.getMessage().getChannel(), serverId, "recap_not_running");
                 return;
             }
 
@@ -249,8 +247,6 @@ public class AngelScrim
         Message votes = msg.getChannel().flatMap(channel1 -> channel1.getMessageById(msg.getId(), EntityRetrievalStrategy.REST)).block();
 
         StringBuilder sb = new StringBuilder();
-        sb.append("Vods from scrim ").append(recap.getDate()).append(": \n");
-
 
         votes.getReactions().stream()
             .sorted(Comparator.comparingInt(Reaction::getCount).reversed())
@@ -263,7 +259,7 @@ public class AngelScrim
                     .append(" votes)\n")
             );
 
-        sendMessage(vodChannel, sb.toString());
+        sendMessage(vodChannel, votes.getGuildId().get().asString(), "votes_display", recap.getDate(), sb.toString());
 
     }
 
@@ -271,8 +267,8 @@ public class AngelScrim
     {
         AtomicInteger i = new AtomicInteger();
         i.set(0);
-        Message message = sendMessage(channel, "Played maps: \n"
-            + recap.getMapsPlayed().stream()
+        Message message = sendMessage(channel, recap.getServerId(), "poll_display"
+            , recap.getMapsPlayed().stream()
             .peek(replay -> mapping.put(voteEmojis.get(i.get()), replay))
             .map(replay -> (i.getAndIncrement() + 1) + ": " + replay.getMap() + " " + replay.getCode())
             .collect(Collectors.joining("\n"))
@@ -290,8 +286,8 @@ public class AngelScrim
         Locale locale = new Locale("en", "FR");
         String dateFormat = DateFormat.getDateInstance(DateFormat.DEFAULT, locale).format(date);
 
-        sendMessage(channel, "Recap on " + dateFormat + " for team "
-            + teamsRepository.getTeamById(recap.getTeamId()).getName() + ":\n"
+        sendMessage(channel, recap.getServerId(), "recap_display", dateFormat,
+             teamsRepository.getTeamById(recap.getTeamId()).getName() + ":\n"
             + recap.getReviews().entrySet().stream().map(entry -> entry.getKey() + ": " + entry.getValue()).collect(Collectors.joining("\n"))
 
         );

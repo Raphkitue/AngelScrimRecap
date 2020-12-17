@@ -1,5 +1,7 @@
 package Util;
 
+import static Util.LocaleUtils.getLocaleString;
+
 import discord4j.common.util.Snowflake;
 import discord4j.core.event.domain.message.MessageCreateEvent;
 import discord4j.core.object.entity.Message;
@@ -15,23 +17,16 @@ public class MessageUtils
 
     private static final Logger log = Loggers.getLogger(MessageUtils.class);
 
-    public static boolean messageStartsWith(MessageCreateEvent event, String command)
-    {
-        Message message = event.getMessage();
-        String content = message.getContent();
-        return content.startsWith(command);
-    }
-
-    public static Message sendMessage(Mono<MessageChannel> channel, String message)
+    public static Message sendMessage(Mono<MessageChannel> channel, String serverId, String ressourceId, String ...args)
     {
         return channel.flatMap(
-            e -> e.createMessage(message)
+            e -> e.createMessage(getLocaleString(serverId, ressourceId, args))
         ).block();
     }
 
-    public static Message sendMessage(MessageChannel channel, String message)
+    public static Message sendMessage(MessageChannel channel, String serverId, String ressourceId, String ...args)
     {
-        return channel.createMessage(message).block();
+        return channel.createMessage(getLocaleString(serverId, ressourceId, args)).block();
     }
 
 

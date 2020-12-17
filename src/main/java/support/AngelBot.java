@@ -2,7 +2,6 @@ package support;
 
 import static Util.LocaleUtils.getLocaleString;
 import static Util.MessageUtils.commandMessage;
-import static Util.MessageUtils.messageStartsWith;
 import static Util.MessageUtils.sendMessage;
 
 import app.DependenciesContainer;
@@ -14,13 +13,12 @@ import discord4j.core.object.entity.channel.GuildChannel;
 import discord4j.core.object.reaction.ReactionEmoji;
 import java.util.Arrays;
 import java.util.function.BiConsumer;
-import java.util.function.Consumer;
-import model.commands.Command;
-import repository.installs.IInstallsRepository;
 import model.Install;
+import model.commands.Command;
 import reactor.core.publisher.Mono;
 import reactor.util.Logger;
 import reactor.util.Loggers;
+import repository.installs.IInstallsRepository;
 
 public class AngelBot
 {
@@ -60,13 +58,13 @@ public class AngelBot
                 { installForServer.setChannelId(channel.getId().asString()); } else
                 { installsRepo.updateInstall(new Install(serverId, channel.getId().asString())); }
 
-                sendMessage(ev.getMessage().getChannel(), getLocaleString(serverId,"channel_set_success", channel.getName()));
+                sendMessage(ev.getMessage().getChannel(), serverId,"channel_set_success", channel.getName());
                 return;
             }
 
             if (installsRepo.installExists(serverId))
             {
-                sendMessage(ev.getMessage().getChannel(), getLocaleString(serverId,"channel_set_fail"));
+                sendMessage(ev.getMessage().getChannel(),serverId,"channel_set_fail");
                 return;
             }
 
@@ -117,7 +115,7 @@ public class AngelBot
             Install installForServer = installsRepo.getInstallForServer(serverId);
             if (installForServer == null)
             {
-                sendMessage(e.getMessage().getChannel(), getLocaleString(installForServer, "server_not_setup"));
+                sendMessage(e.getMessage().getChannel(), null, "server_not_setup");
                 return;
             }
 
@@ -132,9 +130,9 @@ public class AngelBot
     {
         return commandMessage(event, Command.HELP, (command, ev) -> {
             StringBuilder sb = new StringBuilder();
+            String serverId = ev.getGuildId().get().asString();
 
-            sb.append("Here is the help for Angel bot: \n");
-            sb.append("Call the bot with \"Angel,\" and add one of the following commands \n");
+            sb.append("\n");
 
             Arrays.stream(Command.values())
                 .forEach(e -> {
@@ -142,11 +140,11 @@ public class AngelBot
                         .append(e.getCommand());
                     e.getArguments().forEach(f -> sb.append(" ").append(f.toString()));
                     sb.append(": ")
-                        .append(e.getDescription())
+                        .append(e.getDescription(serverId))
                         .append('\n');
                 });
 
-            sendMessage(event.getMessage().getChannel(), sb.toString());
+            sendMessage(event.getMessage().getChannel(), serverId, "help_intro", sb.toString());
         });
 
     }
