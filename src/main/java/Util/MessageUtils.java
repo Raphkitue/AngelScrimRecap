@@ -3,7 +3,6 @@ package Util;
 import discord4j.common.util.Snowflake;
 import discord4j.core.event.domain.message.MessageCreateEvent;
 import discord4j.core.object.entity.Message;
-import discord4j.core.object.entity.channel.Channel;
 import discord4j.core.object.entity.channel.MessageChannel;
 import java.util.function.BiConsumer;
 import model.commands.Command;
@@ -43,10 +42,9 @@ public class MessageUtils
 
     public static Mono<Void> commandMessage(MessageCreateEvent event, Command requiredCommand, BiConsumer<Command, MessageCreateEvent> consumer)
     {
-        String command = requiredCommand.getCommand();
-        if (messageStartsWith(event, command))
+        if (requiredCommand.validate(event.getMessage().getContent()))
         {
-            log.info("Parsing :" + command);
+            log.debug("Parsing :" + event.getMessage().getContent());
             consumer.accept(requiredCommand, event);
         }
         return Mono.empty();

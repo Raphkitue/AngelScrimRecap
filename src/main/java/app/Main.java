@@ -11,11 +11,15 @@ import java.net.InetSocketAddress;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Locale;
+import java.util.ResourceBundle;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import reactor.core.publisher.Mono;
+import reactor.util.Logger;
+import reactor.util.Loggers;
 import support.AngelBot;
 import support.AngelScrim;
 import support.AngelTeam;
@@ -23,25 +27,31 @@ import support.EventHandler;
 
 public class Main
 {
+
+    private static final Logger log = Loggers.getLogger(Main.class);
+
     public static void main(String[] args) throws IOException
     {
-        GatewayDiscordClient client = DiscordClient.create(System.getProperty("token")).login().block();
+        GatewayDiscordClient client = DiscordClient.create("Nzg3MzQ4MjgxMTQyNTQyMzY2.X9TpOg.1PuKldq-LKOJjZ38USgoR54wbwo").login().block();
 
 
         List<EventHandler> eventHandlers = new ArrayList<>();
         List<EventHandler> teamCommands = new ArrayList<>();
+        List<EventHandler> captainCommands = new ArrayList<>();
         List<EventHandler> channelCommands = new ArrayList<>();
 
         eventHandlers.add(AngelBot::logMessages);
         eventHandlers.add(AngelBot::onSetupMessage);
         eventHandlers.add(AngelBot::onSetupVod);
+        eventHandlers.add(AngelBot::onSetupDelay);
+        eventHandlers.add(AngelBot::onSetupLang);
         eventHandlers.add(AngelBot::onSetupRecap);
         eventHandlers.add(AngelBot::onHelp);
 
-        teamCommands.add(AngelScrim::onScrimStart);
+        captainCommands.add(AngelScrim::onScrimStart);
         teamCommands.add(AngelScrim::onRecapAddLine);
         teamCommands.add(AngelScrim::onRecapAddReplay);
-        teamCommands.add(AngelScrim::onRecapFinish);
+        captainCommands.add(AngelScrim::onRecapFinish);
 
         channelCommands.add(AngelTeam::onTeamCreate);
         channelCommands.add(AngelTeam::onTeamDelete);
@@ -52,13 +62,20 @@ public class Main
         channelCommands.add(AngelTeam::onTeamSetCaptain);
         channelCommands.add(AngelTeam::onTeamsShow);
 
+
+        //I18n
+        //Announcement command
+        //Reset gdoc + notif + possibilite d'annuler
+        //Better parse arguments
+
         assert client != null;
 
         Mono.when(
             readyHandler(client),
             commandHandler(client, eventHandlers),
             teamMemberMessages(client, teamCommands),
-            correctChannelMessages(client, channelCommands)
+            correctChannelMessages(client, channelCommands),
+            captainMessages(client, captainCommands)
         )
             .subscribe();
 
@@ -92,6 +109,10 @@ public class Main
     public static Mono<Void> teamMemberMessages(GatewayDiscordClient client, List<EventHandler> eventHandlers)
     {
         return baseCommandHandler(client, eventHandlers, MessageFilters::inCorrectChannelFilter, MessageFilters::teamReadyFilter, MessageFilters::teamFilter);
+    }
+    public static Mono<Void> captainMessages(GatewayDiscordClient client, List<EventHandler> eventHandlers)
+    {
+        return baseCommandHandler(client, eventHandlers, MessageFilters::inCorrectChannelFilter, MessageFilters::teamReadyFilter, MessageFilters::captainFilter);
     }
 
 

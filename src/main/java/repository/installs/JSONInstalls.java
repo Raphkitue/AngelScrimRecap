@@ -4,7 +4,9 @@ import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.util.HashMap;
+import java.util.stream.Collectors;
 import model.Install;
+import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
 
@@ -24,18 +26,20 @@ public class JSONInstalls extends InMemoryInstalls
             //Read JSON file
             JSONObject obj = (JSONObject) jsonParser.parse(reader);
 
-            JSONObject installs = (JSONObject) obj.get("installs");
-            JSONObject vods = (JSONObject) obj.get("vod");
-            JSONObject recaps = (JSONObject) obj.get("recaps");
+            JSONArray installs = (JSONArray) obj.get("installs");
 
-            this.installs.putAll(installs);
-            this.vods.putAll(vods);
-            this.recaps.putAll(recaps);
+
+            installs.forEach(object -> {
+                JSONObject jsonObject = (JSONObject) object;
+                String key = (String) jsonObject.keySet().stream().filter(e -> !((String)e).isEmpty()).findFirst().get();
+                this.installs.put(key, (Install) new Install().fromJson((JSONObject) jsonObject.get(key)));
+            });
+
+
 
         } catch (Exception e) {
             installs = new HashMap<>();
-            vods = new HashMap<>();
-            recaps = new HashMap<>();
+
         }
     }
 
@@ -45,9 +49,12 @@ public class JSONInstalls extends InMemoryInstalls
         super.updateInstall(install);
         try (FileWriter file = new FileWriter(fileName)) {
             JSONObject jsonObject = new JSONObject();
-            jsonObject.put("installs", installs);
-            jsonObject.put("vod", vods);
-            jsonObject.put("recaps", recaps);
+            jsonObject.put("installs", installs.entrySet().stream().map(entry -> {
+                JSONObject jsonObject1 = new JSONObject();
+                jsonObject1.put(entry.getKey(), entry.getValue().toJson());
+                return jsonObject1;
+            }).collect(Collectors.toList()));
+
             file.write(jsonObject.toJSONString());
             file.flush();
         } catch (IOException e) {

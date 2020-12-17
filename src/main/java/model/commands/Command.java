@@ -11,25 +11,29 @@ import reactor.util.Loggers;
 
 public enum Command
 {
-    RECAP_START("Angel, recap start", "Starts a recap round for a scrim", Argument.optional("teamname")),
-    RECAP_ADD_LINE("Angel, recap add", "Add recap for you (or a player if you're captain)", Argument.optional("@username")),
-    RECAP_ADD_REPLAY("Angel, recap replay", "Add the code for a map played", Argument.mandatory("mapname"), Argument.mandatory("replaycode")),
-    RECAP_FINISH("Angel, recap finish", "Ends a recap"),
+    RECAP_START("recap start", "Starts a recap round for a scrim", Argument.optional("teamname")),
+    RECAP_ADD_LINE("recap add", "Add recap for you (or a player if you're captain)", Argument.optional("@username")),
+    RECAP_ADD_REPLAY("recap replay", "Add the code for a map played", Argument.mandatory("mapname"), Argument.mandatory("replaycode")),
+    RECAP_FINISH("recap finish", "Ends a recap"),
 
-    SETUP_VOD("Angel, setup vod", "Sets up a vod channel", Argument.mandatory("#channel")),
-    SETUP_RECAP("Angel, setup recap", "Sets up a recap channel", Argument.mandatory("#channel")),
-    SETUP("Angel, setup bot", "Initial bot setup with creation of a channel", Argument.optional("#channel")),
+    SETUP_VOD("setup vod", "Sets up a vod channel", Argument.mandatory("#channel")),
+    SETUP_LANGUAGE("setup lang", "Sets up bot language", Argument.mandatory("lang")),
+    SETUP_DELAY("setup vote", "Sets up vote delay in minutes", Argument.mandatory("delay")),
+    SETUP_RECAP("setup recap", "Sets up a recap channel", Argument.mandatory("#channel")),
+    SETUP("setup bot", "Initial bot setup with creation of a channel", Argument.optional("#channel")),
 
-    TEAM_ADD_ROLE("Angel, team add role", "Add all the users of a group to a team", Argument.mandatory("@rolename"), Argument.optional("teamname")),
-    TEAM_ADD_USER("Angel, team add player", "Add a player to a team", Argument.mandatory("@username"), Argument.optional("teamname")),
-    TEAM_REMOVE_USER("Angel, team remove", "Remove a player from a team", Argument.mandatory("@username"), Argument.optional("teamname")),
-    TEAM_SET_CAPTAIN("Angel, team set captain", "Sets the captain of a team", Argument.mandatory("@username"), Argument.optional("teamname")),
-    TEAM_CREATE("Angel, team create", "Create a team", Argument.mandatory("teamname")),
-    TEAM_DELETE("Angel, team delete", "Delete a team", Argument.mandatory("teamname")),
-    TEAM_RESET("Angel, team reset", "Resets a team", Argument.mandatory("teamname")),
-    TEAMS_SHOW("Angel, team show", "Shows teams compositions", Argument.optional("teamname")),
+    TEAM_ADD_ROLE("team add role", "Add all the users of a group to a team", Argument.mandatory("@rolename"), Argument.optional("teamname")),
+    TEAM_ADD_USER("team add player", "Add a player to a team", Argument.mandatory("@username"), Argument.optional("teamname")),
+    TEAM_REMOVE_USER("team remove", "Remove a player from a team", Argument.mandatory("@username"), Argument.optional("teamname")),
+    TEAM_SET_CAPTAIN("team set captain", "Sets the captain of a team", Argument.mandatory("@username"), Argument.optional("teamname")),
+    TEAM_CREATE("team create", "Create a team", Argument.mandatory("teamname")),
+    TEAM_DELETE("team delete", "Delete a team", Argument.mandatory("teamname")),
+    TEAM_RESET("team reset", "Resets a team", Argument.mandatory("teamname")),
+    TEAMS_SHOW("team show", "Shows teams compositions", Argument.optional("teamname")),
 
-    HELP("Angel, help", "Prints this help");
+    HELP("help", "Prints this help");
+
+    public static final List<String> PREFIXES = Arrays.asList("Angel,", "ag", "under");
 
     private static final Logger log = Loggers.getLogger(Command.class);
 
@@ -44,6 +48,11 @@ public enum Command
         this.arguments = Arrays.asList(arguments);
     }
 
+    public boolean validate(String message)
+    {
+        return PREFIXES.stream().map(s -> s + " " + command).anyMatch(message::startsWith);
+    }
+
     public String getCommand()
     {
         return command;
@@ -52,6 +61,11 @@ public enum Command
     public String getDescription()
     {
         return description;
+    }
+
+    public String removeCommand(String message)
+    {
+        return PREFIXES.stream().map(s -> s + " " + command).filter(message::startsWith).findFirst().map(s -> message.replace(s, "")).orElse(message);
     }
 
     public String parseMention(String mention)
@@ -71,7 +85,7 @@ public enum Command
 
     public String parseArgument(String message, Argument arg)
     {
-        List<String> args = Arrays.stream(message.replace(command, "").split("\\s+"))
+        List<String> args = Arrays.stream(removeCommand(message).split("\\s+"))
             .filter(s -> !s.isEmpty())
             .map(String::trim)
             .collect(Collectors.toList());
@@ -103,7 +117,7 @@ public enum Command
 
     public String getText(String message)
     {
-        String args = message.replace(command, "");
+        String args = removeCommand(message);
 
         Iterator<Argument> iterator = arguments.iterator();
 

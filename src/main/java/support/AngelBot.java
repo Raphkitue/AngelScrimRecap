@@ -1,5 +1,6 @@
 package support;
 
+import static Util.LocaleUtils.getLocaleString;
 import static Util.MessageUtils.commandMessage;
 import static Util.MessageUtils.messageStartsWith;
 import static Util.MessageUtils.sendMessage;
@@ -9,15 +10,12 @@ import discord4j.common.util.Snowflake;
 import discord4j.core.GatewayDiscordClient;
 import discord4j.core.event.domain.lifecycle.ReadyEvent;
 import discord4j.core.event.domain.message.MessageCreateEvent;
-import discord4j.core.object.entity.Guild;
 import discord4j.core.object.entity.channel.GuildChannel;
 import discord4j.core.object.reaction.ReactionEmoji;
-import discord4j.core.retriever.EntityRetrievalStrategy;
 import java.util.Arrays;
-import java.util.Optional;
-import model.commands.Argument;
+import java.util.function.BiConsumer;
+import java.util.function.Consumer;
 import model.commands.Command;
-import model.scrims.User;
 import repository.installs.IInstallsRepository;
 import model.Install;
 import reactor.core.publisher.Mono;
@@ -49,20 +47,26 @@ public class AngelBot
         return commandMessage(event, Command.SETUP, (command, ev) -> {
 
             log.info("Creating channel for server");
+            String serverId = event.getGuildId().get().asString();
 
             String channelId = command.getArgument(ev.getMessage().getContent(), "#channel").orElse(null);
             if (channelId != null)
             {
-                GuildChannel block = ev.getGuild().flatMap(guild -> guild.getChannelById(Snowflake.of(channelId))).block();
-                log.info("Created set to ", block.getName());
-                installsRepo.updateInstall(new Install(event.getGuildId().get().asString(), block.getId().asString()));
-                sendMessage(ev.getMessage().getChannel(), "Channel set on " + block.getName());
+                GuildChannel channel = ev.getGuild().flatMap(guild -> guild.getChannelById(Snowflake.of(channelId))).block();
+                log.info("Created set to ", channel.getName());
+                Install installForServer = installsRepo.getInstallForServer(serverId);
+
+                if (installForServer != null)
+                { installForServer.setChannelId(channel.getId().asString()); } else
+                { installsRepo.updateInstall(new Install(serverId, channel.getId().asString())); }
+
+                sendMessage(ev.getMessage().getChannel(), getLocaleString(serverId,"channel_set_success", channel.getName()));
                 return;
             }
 
-            if (installsRepo.installExists(event.getGuildId().get().asString()))
+            if (installsRepo.installExists(serverId))
             {
-                sendMessage(ev.getMessage().getChannel(), "Channel already set");
+                sendMessage(ev.getMessage().getChannel(), getLocaleString(serverId,"channel_set_fail"));
                 return;
             }
 
@@ -75,7 +79,7 @@ public class AngelBot
                 );
             })
                 .flatMap(e -> {
-                    log.info("Created channel for server {}", e.getId().asString());
+                    log.info(getLocaleString(serverId,"channel_set_success", e.getId().asString()));
                     installsRepo.updateInstall(new Install(event.getGuildId().get().asString(), e.getId().asString()));
                     return Mono.empty();
                 })
@@ -86,39 +90,38 @@ public class AngelBot
 
     public static Mono<Void> onSetupVod(MessageCreateEvent event)
     {
-        return commandMessage(event, Command.SETUP_VOD, (command, e) -> {
-            String serverId = e.getGuildId().get().asString();
-            String channelId = command.getMandatoryArgument(e.getMessage().getContent(), "#channel");
+        return setupSetting(event, Command.SETUP_VOD, "#channel", (Install::setVodId));
+    }
 
-            Install installForServer = installsRepo.getInstallForServer(serverId);
+    public static Mono<Void> onSetupLang(MessageCreateEvent event)
+    {
+        return setupSetting(event, Command.SETUP_LANGUAGE, "lang", (Install::setLang));
+    }
 
-            if (installForServer == null)
-            {
-                sendMessage(e.getMessage().getChannel(), "Server is not yet set up");
-                return;
-            }
-
-            installForServer.setVodId(channelId);
-
-            installsRepo.updateInstall(installForServer);
-            e.getMessage().addReaction(ReactionEmoji.unicode("✅")).block();
-        });
+    public static Mono<Void> onSetupDelay(MessageCreateEvent event)
+    {
+        return setupSetting(event, Command.SETUP_DELAY, "delay", (Install::setVoteDelay));
     }
 
     public static Mono<Void> onSetupRecap(MessageCreateEvent event)
     {
-        return commandMessage(event, Command.SETUP_RECAP, (command, e) -> {
+        return setupSetting(event, Command.SETUP_RECAP, "#channel", (Install::setRecapsId));
+    }
+
+    private static Mono<Void> setupSetting(MessageCreateEvent event, Command comm, String argname, BiConsumer<Install, String> action)
+    {
+        return commandMessage(event, comm, (command, e) -> {
             String serverId = e.getGuildId().get().asString();
-            String channelId = command.getMandatoryArgument(e.getMessage().getContent(), "#channel");
+            String argument = command.getMandatoryArgument(e.getMessage().getContent(), argname);
 
             Install installForServer = installsRepo.getInstallForServer(serverId);
             if (installForServer == null)
             {
-                sendMessage(e.getMessage().getChannel(), "Server is not yet set up");
+                sendMessage(e.getMessage().getChannel(), getLocaleString(installForServer, "server_not_setup"));
                 return;
             }
 
-            installForServer.setRecapsId(channelId);
+            action.accept(installForServer, argument);
 
             installsRepo.updateInstall(installForServer);
             e.getMessage().addReaction(ReactionEmoji.unicode("✅")).block();
@@ -127,10 +130,7 @@ public class AngelBot
 
     public static Mono<Void> onHelp(MessageCreateEvent event)
     {
-        String command = Command.HELP.getCommand();
-        if (messageStartsWith(event, command))
-        {
-            log.info(command);
+        return commandMessage(event, Command.HELP, (command, ev) -> {
             StringBuilder sb = new StringBuilder();
 
             sb.append("Here is the help for Angel bot: \n");
@@ -147,9 +147,8 @@ public class AngelBot
                 });
 
             sendMessage(event.getMessage().getChannel(), sb.toString());
+        });
 
-        }
-        return Mono.empty();
     }
 
 

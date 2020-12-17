@@ -3,15 +3,14 @@ package app;
 import static Util.MessageUtils.getServerIdFromMessage;
 
 import discord4j.core.event.domain.message.MessageCreateEvent;
-import model.scrims.Team;
 import reactor.util.Logger;
 import reactor.util.Loggers;
 import repository.installs.IInstallsRepository;
 import repository.teams.ITeamsRepository;
-import support.AngelBot;
 
 public class MessageFilters
 {
+
     private static final IInstallsRepository installsRepo = DependenciesContainer.getInstance().getInstallsRepo();
     private static final ITeamsRepository teamsRepo = DependenciesContainer.getInstance().getTeamsRepo();
 
@@ -28,6 +27,15 @@ public class MessageFilters
             .asString().equals(
                 installsRepo.getInstallForServer(getServerIdFromMessage(event)).getChannelId()
             );
+    }
+
+    public static boolean captainFilter(MessageCreateEvent event)
+    {
+        return teamsRepo.getTeamsForServer(event.getGuildId().get().asString())
+            .stream()
+            .flatMap(team -> team.getMembers().stream())
+            .filter(user -> user.getUserId().equals(event.getMessage().getAuthor().get().getId().asString()))
+            .anyMatch(user -> user.getRole().equals("captain"));
     }
 
     public static boolean teamReadyFilter(MessageCreateEvent event)

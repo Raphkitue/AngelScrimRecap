@@ -7,16 +7,13 @@ import model.Install;
 public class InMemoryInstalls implements IInstallsRepository
 {
 
-    protected Map<String, String> installs = new HashMap<>();
-    protected Map<String, String> vods = new HashMap<>();
-    protected Map<String, String> recaps = new HashMap<>();
+    protected Map<String, Install> installs = new HashMap<>();
+
 
     @Override
     public Install getInstallForServer(String serverId)
     {
-        if (installExists(serverId))
-        { return new Install(serverId, installs.get(serverId), vods.get(serverId), recaps.get(serverId)); }
-        return null;
+        return installs.get(serverId);
     }
 
     @Override
@@ -28,8 +25,6 @@ public class InMemoryInstalls implements IInstallsRepository
     @Override
     public void updateInstall(Install install)
     {
-        installs.put(install.getServerId(), install.getChannelId());
-        vods.put(install.getServerId(), install.getVodId());
-        recaps.put(install.getServerId(), install.getRecapsId());
+        installs.put(install.getServerId(), install);
     }
 }
