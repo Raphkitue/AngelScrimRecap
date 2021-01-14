@@ -259,7 +259,7 @@ public class AngelScrim
                     .append(" votes)\n")
             );
 
-        sendMessage(vodChannel, votes.getGuildId().get().asString(), "votes_display", recap.getDate(), sb.toString());
+        sendMessage(vodChannel, msg.getGuildId().orElse(Snowflake.of(recap.getServerId())).asString(), "votes_display", recap.getDate(), sb.toString());
 
     }
 
