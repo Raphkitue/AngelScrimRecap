@@ -95,6 +95,7 @@ public class Install implements Jsonable
         JSONObject jsonObject = new JSONObject();
         jsonObject.put("serverId", serverId);
         jsonObject.put("vodId", vodId);
+        jsonObject.put("channelId", channelId);
         jsonObject.put("recapsId", recapsId);
         jsonObject.put("lang", lang);
         jsonObject.put("voteDelay", voteDelay);
@@ -105,6 +106,7 @@ public class Install implements Jsonable
     public Jsonable fromJson(JSONObject jsonString)
     {
         serverId = (String) jsonString.getOrDefault("serverId", "");
+        channelId = (String) jsonString.getOrDefault("channelId", "");
         vodId = (String) jsonString.getOrDefault("vodId", "");
         recapsId = (String) jsonString.getOrDefault("recapsId", "");
         lang = (String) jsonString.getOrDefault("lang", "");
