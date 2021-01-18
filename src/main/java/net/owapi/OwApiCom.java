@@ -52,6 +52,9 @@ public class OwApiCom implements IOWAPI
             );
 
             ArrayList<JSONObject> competitive = (JSONArray) obj.get("ratings");
+            if (competitive == null)
+                return with;
+
             log.info(string);
 
             return competitive.stream()
