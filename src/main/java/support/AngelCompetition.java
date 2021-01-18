@@ -36,7 +36,7 @@ import repository.rankings.recap.IRankingsRepository;
 public class AngelCompetition
 {
 
-    private static final Logger log = Loggers.getLogger(Command.class);
+    private static final Logger log = Loggers.getLogger(AngelCompetition.class);
 
     private static final IOWAPI owApi = DependenciesContainer.getInstance().getOwApi();
     private static final IInstallsRepository installsRepo = DependenciesContainer.getInstance().getInstallsRepo();
@@ -157,9 +157,9 @@ public class AngelCompetition
                 if(playerElos == null)
                     return ranking;
                 ranking.setTankElo(playerElos.getValue0() != 0 ? playerElos.getValue0() : ranking.getTankElo());
-                ranking.setDamageElo(playerElos.getValue1() != 0 ? playerElos.getValue1() : ranking.getTankElo());
-                ranking.setSupportElo(playerElos.getValue2() != 0 ? playerElos.getValue2() : ranking.getTankElo());
-                ranking.setOpenQElo(playerElos.getValue3() != 0 ? playerElos.getValue3() : ranking.getTankElo());
+                ranking.setDamageElo(playerElos.getValue1() != 0 ? playerElos.getValue1() : ranking.getDamageElo());
+                ranking.setSupportElo(playerElos.getValue2() != 0 ? playerElos.getValue2() : ranking.getSupportElo());
+                ranking.setOpenQElo(playerElos.getValue3() != 0 ? playerElos.getValue3() : ranking.getOpenQElo());
                 return ranking;
             }).collect(Collectors.toMap(Ranking::getBattletag, e -> e));
 

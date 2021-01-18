@@ -1,7 +1,7 @@
 package app;
 
 import net.owapi.IOWAPI;
-import net.owapi.Owapi;
+import net.owapi.OwApiCom;
 import repository.installs.IInstallsRepository;
 import repository.installs.JSONInstalls;
 import repository.rankings.recap.IRankingsRepository;
@@ -21,7 +21,7 @@ public class DependenciesContainer
 
     private static final IRecapRepository recapsRepo = new JSONRecaps("recaps.json");
 
-    private static final IOWAPI owApi = new Owapi();
+    private static final IOWAPI owApi = new OwApiCom();
 
     private static final DependenciesContainer instance = new DependenciesContainer();
 
