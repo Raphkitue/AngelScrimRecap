@@ -11,8 +11,6 @@ import java.net.InetSocketAddress;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-import java.util.Locale;
-import java.util.ResourceBundle;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.function.Predicate;
@@ -21,7 +19,8 @@ import reactor.core.publisher.Mono;
 import reactor.util.Logger;
 import reactor.util.Loggers;
 import support.AngelBot;
-import support.AngelScrim;
+import support.AngelCompetition;
+import support.AngelRecap;
 import support.AngelTeam;
 import support.EventHandler;
 
@@ -34,7 +33,6 @@ public class Main
     {
         GatewayDiscordClient client = DiscordClient.create("Nzg3MzQ4MjgxMTQyNTQyMzY2.X9TpOg.1PuKldq-LKOJjZ38USgoR54wbwo").login().block();
 
-
         List<EventHandler> eventHandlers = new ArrayList<>();
         List<EventHandler> teamCommands = new ArrayList<>();
         List<EventHandler> captainCommands = new ArrayList<>();
@@ -46,12 +44,19 @@ public class Main
         eventHandlers.add(AngelBot::onSetupDelay);
         eventHandlers.add(AngelBot::onSetupLang);
         eventHandlers.add(AngelBot::onSetupRecap);
+        eventHandlers.add(AngelBot::onSetupRankings);
         eventHandlers.add(AngelBot::onHelp);
 
-        captainCommands.add(AngelScrim::onScrimStart);
-        teamCommands.add(AngelScrim::onRecapAddLine);
-        teamCommands.add(AngelScrim::onRecapAddReplay);
-        captainCommands.add(AngelScrim::onRecapFinish);
+        teamCommands.add(AngelRecap::onRecapAddLine);
+        teamCommands.add(AngelRecap::onRecapAddReplay);
+
+        captainCommands.add(AngelRecap::onRecapStart);
+        captainCommands.add(AngelRecap::onRecapFinish);
+
+        captainCommands.add(AngelCompetition::onStartRankings);
+        captainCommands.add(AngelCompetition::onRankingsConf);
+        eventHandlers.add(AngelCompetition::onRankingsEnroll);
+        channelCommands.add(AngelCompetition::onRankingsUpdate);
 
         channelCommands.add(AngelTeam::onTeamCreate);
         channelCommands.add(AngelTeam::onTeamDelete);
@@ -63,12 +68,13 @@ public class Main
         channelCommands.add(AngelTeam::onTeamsShow);
 
 
-        //I18n
         //Announcement command
         //Reset gdoc + notif + possibilite d'annuler
         //Better parse arguments
 
         assert client != null;
+
+        AngelCompetition.initialize(client);
 
         Mono.when(
             readyHandler(client),

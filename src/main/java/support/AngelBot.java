@@ -55,8 +55,12 @@ public class AngelBot
                 Install installForServer = installsRepo.getInstallForServer(serverId);
 
                 if (installForServer != null)
-                { installForServer.setChannelId(channel.getId().asString()); } else
+                {
+                    installForServer.setChannelId(channel.getId().asString());
+                    installsRepo.updateInstall(installForServer);
+                } else
                 { installsRepo.updateInstall(new Install(serverId, channel.getId().asString())); }
+
 
                 sendMessage(ev.getMessage().getChannel(), serverId,"channel_set_success", channel.getName());
                 return;
@@ -104,6 +108,10 @@ public class AngelBot
     public static Mono<Void> onSetupRecap(MessageCreateEvent event)
     {
         return setupSetting(event, Command.SETUP_RECAP, "#channel", (Install::setRecapsId));
+    }
+    public static Mono<Void> onSetupRankings(MessageCreateEvent event)
+    {
+        return setupSetting(event, Command.SETUP_RANKINGS, "#channel", (Install::setRankingsId));
     }
 
     private static Mono<Void> setupSetting(MessageCreateEvent event, Command comm, String argname, BiConsumer<Install, String> action)

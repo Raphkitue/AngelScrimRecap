@@ -1,6 +1,5 @@
 package support;
 
-import static Util.LocaleUtils.getLocaleString;
 import static Util.MessageUtils.commandMessage;
 import static Util.MessageUtils.sendMessage;
 
@@ -39,7 +38,7 @@ import repository.installs.IInstallsRepository;
 import repository.recap.IRecapRepository;
 import repository.teams.ITeamsRepository;
 
-public class AngelScrim
+public class AngelRecap
 {
     private static final List<ReactionEmoji> voteEmojis= Arrays.asList(
         ReactionEmoji.unicode("1️⃣"),
@@ -62,7 +61,7 @@ public class AngelScrim
 
     private static final Map<String, Recap> currentRecaps = new HashMap<>();
 
-    private static final Logger log = Loggers.getLogger(AngelScrim.class);
+    private static final Logger log = Loggers.getLogger(AngelRecap.class);
 
     private static Team getTeamFromArgument(Command command, String serverId, String message)
     {
@@ -80,7 +79,7 @@ public class AngelScrim
         return team;
     }
 
-    public static Mono<Void> onScrimStart(MessageCreateEvent event)
+    public static Mono<Void> onRecapStart(MessageCreateEvent event)
     {
         return commandMessage(event, Command.RECAP_START, (command, e) -> {
             String serverId = e.getGuildId().get().asString();
@@ -181,7 +180,6 @@ public class AngelScrim
             recapsRepo.updateRecap(recap);
 
             e.getMessage().addReaction(ReactionEmoji.unicode("✅")).block();
-            log.info("things " + recap.getReviews());
         });
     }
 

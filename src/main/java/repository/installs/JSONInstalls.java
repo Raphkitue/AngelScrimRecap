@@ -12,6 +12,7 @@ import org.json.simple.parser.JSONParser;
 
 public class JSONInstalls extends InMemoryInstalls
 {
+
     String fileName;
 
     public JSONInstalls(String filename)
@@ -28,16 +29,15 @@ public class JSONInstalls extends InMemoryInstalls
 
             JSONArray installs = (JSONArray) obj.get("installs");
 
-
             installs.forEach(object -> {
                 JSONObject jsonObject = (JSONObject) object;
-                String key = (String) jsonObject.keySet().stream().filter(e -> !((String)e).isEmpty()).findFirst().get();
+                String key = (String) jsonObject.keySet().stream().filter(e -> !((String) e).isEmpty()).findFirst().get();
                 this.installs.put(key, (Install) new Install().fromJson((JSONObject) jsonObject.get(key)));
             });
 
 
-
-        } catch (Exception e) {
+        } catch (Exception e)
+        {
             installs = new HashMap<>();
 
         }
@@ -47,7 +47,8 @@ public class JSONInstalls extends InMemoryInstalls
     public void updateInstall(Install install)
     {
         super.updateInstall(install);
-        try (FileWriter file = new FileWriter(fileName)) {
+        try (FileWriter file = new FileWriter(fileName))
+        {
             JSONObject jsonObject = new JSONObject();
             jsonObject.put("installs", installs.entrySet().stream().map(entry -> {
                 JSONObject jsonObject1 = new JSONObject();
@@ -57,7 +58,8 @@ public class JSONInstalls extends InMemoryInstalls
 
             file.write(jsonObject.toJSONString());
             file.flush();
-        } catch (IOException e) {
+        } catch (IOException e)
+        {
             e.printStackTrace();
         }
     }

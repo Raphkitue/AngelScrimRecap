@@ -10,6 +10,7 @@ public class Install implements Jsonable
     private String serverId;
     private String channelId;
     private String vodId;
+    private String rankingsId;
     private String recapsId;
     @NonNull
     private String lang = "en";
@@ -24,7 +25,8 @@ public class Install implements Jsonable
     public Install()
     {
     }
-    public Install(String serverId, String channelId, String vodId, String recapsId, @NonNull String lang, @NonNull String voteDelay)
+
+    public Install(String serverId, String channelId, String vodId, String recapsId, @NonNull String lang, @NonNull String voteDelay, String rankingsId)
     {
         this.serverId = serverId;
         this.recapsId = recapsId;
@@ -32,6 +34,7 @@ public class Install implements Jsonable
         this.vodId = vodId;
         this.lang = lang;
         this.voteDelay = voteDelay;
+        this.rankingsId = rankingsId;
     }
 
     public String getServerId()
@@ -79,6 +82,16 @@ public class Install implements Jsonable
         this.lang = lang;
     }
 
+    public String getRankingsId()
+    {
+        return rankingsId;
+    }
+
+    public void setRankingsId(String rankingsId)
+    {
+        this.rankingsId = rankingsId;
+    }
+
     public String getVoteDelay()
     {
         return voteDelay;
@@ -99,6 +112,7 @@ public class Install implements Jsonable
         jsonObject.put("recapsId", recapsId);
         jsonObject.put("lang", lang);
         jsonObject.put("voteDelay", voteDelay);
+        jsonObject.put("rankingsId", rankingsId);
         return jsonObject;
     }
 
@@ -111,6 +125,7 @@ public class Install implements Jsonable
         recapsId = (String) jsonString.getOrDefault("recapsId", "");
         lang = (String) jsonString.getOrDefault("lang", "");
         voteDelay = (String) jsonString.getOrDefault("voteDelay", "");
+        rankingsId = (String) jsonString.getOrDefault("rankingsId", "");
 
         return this;
     }

@@ -18,10 +18,16 @@ public enum Command
     RECAP_ADD_REPLAY("recap replay", Argument.mandatory("mapname"), Argument.mandatory("replaycode")),
     RECAP_FINISH("recap finish"),
 
+    RANKINGS_START("rankings enable"),
+    RANKINGS_ENROLL("rankings enroll", Argument.mandatory("battletag"), Argument.mandatory("mainrole")),
+    RANKINGS_CONF("rankings conf"),
+    RANKINGS_UPDATE("rankings update"),
+
     SETUP_VOD("setup vod", Argument.mandatory("#channel")),
     SETUP_LANGUAGE("setup lang", Argument.mandatory("lang")),
     SETUP_DELAY("setup vote", Argument.mandatory("delay")),
     SETUP_RECAP("setup recap", Argument.mandatory("#channel")),
+    SETUP_RANKINGS("setup rankings", Argument.mandatory("#channel")),
     SETUP("setup bot", Argument.optional("#channel")),
 
     TEAM_ADD_ROLE("team add role", Argument.mandatory("@rolename"), Argument.optional("teamname")),
