@@ -1,6 +1,7 @@
 package support;
 
 import static Util.MessageUtils.commandMessage;
+import static Util.MessageUtils.sendEmbed;
 import static Util.MessageUtils.sendMessage;
 
 import app.DependenciesContainer;
@@ -8,6 +9,7 @@ import discord4j.common.util.Snowflake;
 import discord4j.core.GatewayDiscordClient;
 import discord4j.core.event.domain.message.MessageCreateEvent;
 import discord4j.core.object.entity.channel.MessageChannel;
+import discord4j.core.spec.EmbedCreateSpec;
 import java.time.Duration;
 import java.util.Arrays;
 import java.util.Comparator;
@@ -18,6 +20,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Timer;
 import java.util.TimerTask;
+import java.util.function.Consumer;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import model.Install;
@@ -26,6 +29,7 @@ import model.rankings.Ranking;
 import model.rankings.Rankings;
 import model.rankings.Roles;
 import net.owapi.IOWAPI;
+import org.javatuples.Pair;
 import org.javatuples.Quartet;
 import reactor.core.publisher.Mono;
 import reactor.util.Logger;
@@ -42,7 +46,7 @@ public class AngelCompetition
     private static final IInstallsRepository installsRepo = DependenciesContainer.getInstance().getInstallsRepo();
     private static final IRankingsRepository rankingsRepo = DependenciesContainer.getInstance().getRankingsRepo();
 
-    private static final Map<String, Timer> systems = new HashMap<>();
+    private static final Map<String, Pair<Timer, Timer>> systems = new HashMap<>();
     private static GatewayDiscordClient client;
 
     public static void initialize(GatewayDiscordClient client)
@@ -54,6 +58,7 @@ public class AngelCompetition
     private static void createTask(String serverId)
     {
         Timer timer = new Timer();
+        Timer timerLeaderboard = new Timer();
         long firstStart = 5000;
         long periodWeek = Duration.ofDays(7).toMillis();
         long period = Duration.ofMinutes(30).toMillis();
@@ -68,7 +73,7 @@ public class AngelCompetition
                     displayWeeklyUpdate(serverId);
                 }
             }, firstStart, periodWeek);
-            timer.schedule(new TimerTask()
+            timerLeaderboard.schedule(new TimerTask()
             {
                 @Override
                 public void run()
@@ -77,7 +82,7 @@ public class AngelCompetition
                 }
             }, firstStart + 10000, period);
 
-            systems.put(serverId, timer);
+            systems.put(serverId, Pair.with(timer, timerLeaderboard));
         }
     }
 
@@ -105,16 +110,28 @@ public class AngelCompetition
     {
         MessageChannel messageChannel = (MessageChannel) client.getChannelById(Snowflake.of(channelId)).block();
 
-        List<String> collect = rankings.getRanks().stream()
+        List<String> collectNames = rankings.getRanks().stream()
             .sorted(Comparator.comparingLong(Ranking::getMainRoleElo).reversed())
-            .map(e -> e.getBattletag() + " (*" + e.getMainRoleElo() + "*) -> Tank " + e.getTankElo() + ", Damage " + e.getDamageElo() + ", Support " + e.getSupportElo())
+            .map(e -> e.getBattletag() + " (*" + e.getMainRoleElo() + "*)")
             .collect(Collectors.toList());
 
-        String ldb = IntStream.range(0, collect.size())
-            .mapToObj(i -> (i + 1) + ": " + collect.get(i) + "\n")
-            .collect(Collectors.joining());
+        List<String> collectRanks = rankings.getRanks().stream()
+            .sorted(Comparator.comparingLong(Ranking::getMainRoleElo).reversed())
+            .map(e -> "Tank " + e.getTankElo() + ", Damage " + e.getDamageElo() + ", Support " + e.getSupportElo())
+            .collect(Collectors.toList());
 
-        sendMessage(messageChannel, serverId, "ranking_system_weekly", ldb);
+
+        Consumer<EmbedCreateSpec> weekly = spec -> {
+            spec.setTitle("Weekly Stats");
+
+            IntStream.range(0, Math.min(collectNames.size(), 25))
+                .mapToObj(i -> Pair.with((i + 1) + ": " + collectNames.get(i) ,  collectRanks.get(i)))
+                .forEach(pair -> spec.addField(pair.getValue0(), pair.getValue1(), false));
+        };
+
+
+
+        sendEmbed(messageChannel, serverId, weekly,"ranking_system_weekly");
     }
 
 

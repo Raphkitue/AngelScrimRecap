@@ -7,7 +7,9 @@ import discord4j.common.util.Snowflake;
 import discord4j.core.event.domain.message.MessageCreateEvent;
 import discord4j.core.object.entity.Message;
 import discord4j.core.object.entity.channel.MessageChannel;
+import discord4j.core.spec.EmbedCreateSpec;
 import java.util.function.BiConsumer;
+import java.util.function.Consumer;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 import model.commands.Command;
@@ -34,6 +36,14 @@ public class MessageUtils
     {
         return getPartedMessage(getLocaleString(serverId, ressourceId, args))
             .map(msg -> channel.createMessage(msg).block())
+            .reduce((first, second) -> second).orElse(null);
+
+    }
+
+    public static Message sendEmbed(MessageChannel channel, String serverId, Consumer<EmbedCreateSpec> embedSpecific, String ressourceId, String... args)
+    {
+        return getPartedMessage(getLocaleString(serverId, ressourceId, args))
+            .map(msg -> channel.createEmbed(spec -> embedSpecific.accept(spec.setDescription(msg))).block())
             .reduce((first, second) -> second).orElse(null);
 
     }
