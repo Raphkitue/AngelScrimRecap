@@ -11,12 +11,13 @@ public class Ranking implements Jsonable
     private long damageElo;
     private long supportElo;
     private long openQElo;
+    private boolean privateProfile;
 
     public Ranking()
     {
     }
 
-    public Ranking(String battletag, String mainRole, int tankElo, int damageElo, int supportElo, int openQElo)
+    public Ranking(String battletag, String mainRole, int tankElo, int damageElo, int supportElo, int openQElo, boolean privateProfile)
     {
         this.battletag = battletag;
         this.mainRole = mainRole;
@@ -24,6 +25,7 @@ public class Ranking implements Jsonable
         this.damageElo = damageElo;
         this.supportElo = supportElo;
         this.openQElo = openQElo;
+        this.privateProfile = privateProfile;
     }
 
     public String getBattletag()
@@ -94,6 +96,16 @@ public class Ranking implements Jsonable
         this.openQElo = openQElo;
     }
 
+    public boolean isPrivate()
+    {
+        return privateProfile;
+    }
+
+    public void setPrivate(boolean privateProfile)
+    {
+        this.privateProfile = privateProfile;
+    }
+
     @Override
     public JSONObject toJson()
     {
@@ -104,6 +116,7 @@ public class Ranking implements Jsonable
         jsonObject.put("damageElo", damageElo);
         jsonObject.put("supportElo", supportElo);
         jsonObject.put("openQElo", openQElo);
+        jsonObject.put("privateProfile", privateProfile);
         return jsonObject;
 
     }
@@ -117,6 +130,7 @@ public class Ranking implements Jsonable
         damageElo = (long) jsonObject.get("damageElo");
         supportElo = (long) jsonObject.get("supportElo");
         openQElo = (long) jsonObject.get("openQElo");
+        privateProfile = (boolean) jsonObject.get("privateProfile");
         return this;
     }
 

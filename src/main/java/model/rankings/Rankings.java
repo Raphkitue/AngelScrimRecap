@@ -70,6 +70,11 @@ public class Rankings implements Jsonable
         this.leaderboard = leaderboard;
     }
 
+    public String getUniqueStats()
+    {
+        return playersRanks.values().stream().map(ranking -> ranking.getBattletag() + ranking.isPrivate() + ranking.getSupportElo() + ranking.getDamageElo() + ranking.getTankElo()).collect(Collectors.joining());
+    }
+
     @Override
     public JSONObject toJson()
     {

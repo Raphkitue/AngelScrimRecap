@@ -46,7 +46,7 @@ public class AngelCompetition
     private static final IInstallsRepository installsRepo = DependenciesContainer.getInstance().getInstallsRepo();
     private static final IRankingsRepository rankingsRepo = DependenciesContainer.getInstance().getRankingsRepo();
 
-    private static final Map<String, Pair<Timer, Timer>> systems = new HashMap<>();
+    private static final Map<String, Timer> systems = new HashMap<>();
     private static GatewayDiscordClient client;
 
     public static void initialize(GatewayDiscordClient client)
@@ -57,22 +57,12 @@ public class AngelCompetition
 
     private static void createTask(String serverId)
     {
-        Timer timer = new Timer();
         Timer timerLeaderboard = new Timer();
         long firstStart = 5000;
-        long periodWeek = Duration.ofDays(7).toMillis();
         long period = Duration.ofMinutes(30).toMillis();
 
         if (!systems.containsKey(serverId))
         {
-            timer.schedule(new TimerTask()
-            {
-                @Override
-                public void run()
-                {
-                    displayWeeklyUpdate(serverId);
-                }
-            }, firstStart, periodWeek);
             timerLeaderboard.schedule(new TimerTask()
             {
                 @Override
@@ -82,7 +72,7 @@ public class AngelCompetition
                 }
             }, firstStart + 10000, period);
 
-            systems.put(serverId, Pair.with(timer, timerLeaderboard));
+            systems.put(serverId, timerLeaderboard);
         }
     }
 
@@ -112,7 +102,7 @@ public class AngelCompetition
 
         List<String> collectNames = rankings.getRanks().stream()
             .sorted(Comparator.comparingLong(Ranking::getMainRoleElo).reversed())
-            .map(e -> e.getBattletag() + " (*" + e.getMainRoleElo() + "*)")
+            .map(e -> e.getBattletag() + " (*" + e.getMainRoleElo() + "*) " + (e.isPrivate() ? "PRIVATE PROFILE" : ""))
             .collect(Collectors.toList());
 
         List<String> collectRanks = rankings.getRanks().stream()
@@ -120,18 +110,15 @@ public class AngelCompetition
             .map(e -> "Tank " + e.getTankElo() + ", Damage " + e.getDamageElo() + ", Support " + e.getSupportElo())
             .collect(Collectors.toList());
 
-
         Consumer<EmbedCreateSpec> weekly = spec -> {
             spec.setTitle("Weekly Stats");
 
             IntStream.range(0, Math.min(collectNames.size(), 25))
-                .mapToObj(i -> Pair.with((i + 1) + ": " + collectNames.get(i) ,  collectRanks.get(i)))
+                .mapToObj(i -> Pair.with((i + 1) + ": " + collectNames.get(i), collectRanks.get(i)))
                 .forEach(pair -> spec.addField(pair.getValue0(), pair.getValue1(), false));
         };
 
-
-
-        sendEmbed(messageChannel, serverId, weekly,"ranking_system_weekly");
+        sendEmbed(messageChannel, serverId, weekly, "ranking_system_weekly");
     }
 
 
@@ -148,18 +135,15 @@ public class AngelCompetition
 
         //Request for new elos
         Rankings rankingsForServer = rankingsRepo.getRankingsForServer(serverId);
-        List<String> formerLeaderboard = rankingsForServer.getLeaderboard();
+        String formerStats = rankingsForServer.getUniqueStats();
 
         updateRankings(rankingsForServer);
 
-        log.info(String.join(" ", rankingsForServer.getLeaderboard()));
-        log.info(String.join(" ", formerLeaderboard));
-        if (formerLeaderboard.isEmpty() || !checkListsOrder(formerLeaderboard, rankingsForServer.getLeaderboard()))
+        if (!rankingsForServer.getUniqueStats().equals(formerStats))
         {
             // Check who changed
-
             rankingsForServer.setLeaderboard(rankingsForServer.getLeaderboard());
-            displayLeaderboard(install.getRankingsId(), install.getServerId(), rankingsForServer.getLeaderboard());
+            displayWeekly(install.getRankingsId(), serverId, rankingsForServer);
         }
 
         rankingsRepo.updateRankings(rankingsForServer);
@@ -171,8 +155,12 @@ public class AngelCompetition
         Map<String, Ranking> collect = rankingsForServer.getRanks()
             .stream().map(ranking -> {
                 Quartet<Long, Long, Long, Long> playerElos = owApi.getPlayerElos(ranking.getBattletag());
-                if(playerElos == null)
+                if (playerElos == null)
+                {
+                    ranking.setPrivate(true);
                     return ranking;
+                }
+                ranking.setPrivate(false);
                 ranking.setTankElo(playerElos.getValue0() != 0 ? playerElos.getValue0() : ranking.getTankElo());
                 ranking.setDamageElo(playerElos.getValue1() != 0 ? playerElos.getValue1() : ranking.getDamageElo());
                 ranking.setSupportElo(playerElos.getValue2() != 0 ? playerElos.getValue2() : ranking.getSupportElo());
@@ -190,18 +178,8 @@ public class AngelCompetition
         rankingsForServer.setLeaderboard(leaderboard);
     }
 
-    private static void displayLeaderboard(String channelId, String serverId, List<String> leaderboard)
-    {
-        MessageChannel messageChannel = (MessageChannel) client.getChannelById(Snowflake.of(channelId)).block();
 
-        String ldb = IntStream.range(0, leaderboard.size())
-            .mapToObj(i -> (i + 1) + ": " + leaderboard.get(i) + "\n")
-            .collect(Collectors.joining());
-
-        sendMessage(messageChannel, serverId, "ranking_system_changes", ldb);
-    }
-
-    private static <T> boolean checkListsOrder(List<T> list1, List<T> list2)
+    private static <T> boolean checkListChange(List<T> list1, List<T> list2)
     {
         if (list1 == null || list2 == null || list1.size() != list2.size())
         { return false; }
@@ -272,14 +250,14 @@ public class AngelCompetition
                 return;
             }
 
-            if(owApi.getPlayerElos(battletag) == null)
+            if (owApi.getPlayerElos(battletag) == null)
             {
                 sendMessage(e.getMessage().getChannel(), serverId, "ranking_system_incorrect_profile");
                 return;
             }
 
             Rankings rankings = rankingsRepo.getRankingsForServer(serverId);
-            Ranking ranking = new Ranking(battletag, mainRole, 0, 0, 0, 0);
+            Ranking ranking = new Ranking(battletag, mainRole, 0, 0, 0, 0, false);
             rankings.setRanking(ranking);
 
             rankingsRepo.updateRankings(rankings);

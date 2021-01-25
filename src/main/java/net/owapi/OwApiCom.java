@@ -55,8 +55,6 @@ public class OwApiCom implements IOWAPI
             if (competitive == null)
                 return with;
 
-            log.info(string);
-
             return competitive.stream()
                 .reduce(with, (quartet, o) -> {
                     switch ((String) o.get("role"))
