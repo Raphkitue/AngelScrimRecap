@@ -38,7 +38,7 @@ public class OwApiCom implements IOWAPI
             //Read JSON file
             JSONObject obj = (JSONObject) jsonParser.parse(string);
 
-            if ((boolean) obj.get("private"))
+            if ((boolean) obj.getOrDefault("private", true))
             {
                 return null;
             }
