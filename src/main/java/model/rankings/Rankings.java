@@ -3,8 +3,6 @@ package model.rankings;
 import Util.Jsonable;
 import java.util.Collection;
 import java.util.HashMap;
-import java.util.LinkedList;
-import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -19,7 +17,6 @@ public class Rankings implements Jsonable
 
     private String serverId;
     private Map<String, Ranking> playersRanks = new HashMap<>();
-    private List<String> leaderboard = new LinkedList<>();
 
     public Rankings()
     {
@@ -60,16 +57,6 @@ public class Rankings implements Jsonable
         playersRanks.put(ranking.getBattletag(), ranking);
     }
 
-    public List<String> getLeaderboard()
-    {
-        return leaderboard;
-    }
-
-    public void setLeaderboard(List<String> leaderboard)
-    {
-        this.leaderboard = leaderboard;
-    }
-
     public String getUniqueStats()
     {
         return playersRanks.values().stream().map(ranking -> ranking.getBattletag() + ranking.isPrivate() + ranking.getSupportElo() + ranking.getDamageElo() + ranking.getTankElo()).collect(Collectors.joining());
@@ -101,4 +88,15 @@ public class Rankings implements Jsonable
         return this;
     }
 
+    public Rankings deepClone()
+    {
+        Rankings rankings = new Rankings(serverId);
+
+        rankings.setServerRanks(
+            playersRanks.values().stream()
+            .map(ranking -> new Ranking(ranking.getBattletag(), ranking.getMainRole(), ranking.getTankElo(), ranking.getDamageElo(), ranking.getSupportElo(), ranking.getOpenQElo(), ranking.isPrivate()))
+            .collect(Collectors.toMap(Ranking::getBattletag, r -> r))
+        );
+        return rankings;
+    }
 }

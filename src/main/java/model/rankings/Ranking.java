@@ -17,7 +17,7 @@ public class Ranking implements Jsonable
     {
     }
 
-    public Ranking(String battletag, String mainRole, int tankElo, int damageElo, int supportElo, int openQElo, boolean privateProfile)
+    public Ranking(String battletag, String mainRole, long tankElo, long damageElo, long supportElo, long openQElo, boolean privateProfile)
     {
         this.battletag = battletag;
         this.mainRole = mainRole;
@@ -146,4 +146,6 @@ public class Ranking implements Jsonable
             ", openQElo=" + openQElo +
             '}';
     }
+
+
 }

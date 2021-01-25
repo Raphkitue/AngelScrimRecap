@@ -14,8 +14,6 @@ import java.time.Duration;
 import java.util.Arrays;
 import java.util.Comparator;
 import java.util.HashMap;
-import java.util.Iterator;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Timer;
@@ -49,6 +47,9 @@ public class AngelCompetition
     private static final Map<String, Timer> systems = new HashMap<>();
     private static GatewayDiscordClient client;
 
+    private static final String SCORE_DOWN = "\uD83E\uDC56";
+    private static final String SCORE_UP = "\uD83E\uDC55";
+
     public static void initialize(GatewayDiscordClient client)
     {
         AngelCompetition.client = client;
@@ -76,7 +77,44 @@ public class AngelCompetition
         }
     }
 
-    private static void displayWeeklyUpdate(String serverId)
+    private static String compareElos(long formerElo, long newElo)
+    {
+        return formerElo == newElo ? String.valueOf(newElo) : ((newElo > formerElo ? SCORE_UP : SCORE_DOWN) + newElo);
+    }
+
+    private static void displayChanges(String channelId, String serverId, Rankings rankings, Rankings formerRankings)
+    {
+        MessageChannel messageChannel = (MessageChannel) client.getChannelById(Snowflake.of(channelId)).block();
+
+        List<String> collectNames = rankings.getRanks().stream()
+            .sorted(Comparator.comparingLong(Ranking::getMainRoleElo).reversed())
+            .map(e -> Pair.with(e, formerRankings.getPlayerRanks(e.getBattletag()).orElse(new Ranking())))
+            .map(e -> e.getValue0().getBattletag()
+                + " (*" + compareElos(e.getValue1().getMainRoleElo(), e.getValue0().getMainRoleElo()) + "*) "
+                + (e.getValue0().isPrivate() ? "PRIVATE PROFILE" : ""))
+            .collect(Collectors.toList());
+
+        List<String> collectRanks = rankings.getRanks().stream()
+            .sorted(Comparator.comparingLong(Ranking::getMainRoleElo).reversed())
+            .map(e -> Pair.with(e, formerRankings.getPlayerRanks(e.getBattletag()).orElse(new Ranking())))
+            .map(e -> "Tank " + compareElos(e.getValue1().getTankElo(), e.getValue0().getTankElo())
+                + ", Damage " + compareElos(e.getValue1().getDamageElo(), e.getValue0().getDamageElo())
+                + ", Support " + compareElos(e.getValue1().getSupportElo(), e.getValue0().getSupportElo()))
+            .collect(Collectors.toList());
+
+        Consumer<EmbedCreateSpec> weekly = spec -> {
+            spec.setTitle("Stats change");
+
+            IntStream.range(0, Math.min(collectNames.size(), 25))
+                .mapToObj(i -> Pair.with((i + 1) + ": " + collectNames.get(i), collectRanks.get(i)))
+                .forEach(pair -> spec.addField(pair.getValue0(), pair.getValue1(), false));
+        };
+
+        sendEmbed(messageChannel, serverId, weekly, "ranking_system_weekly");
+    }
+
+
+    private static void displayScores(String serverId)
     {
         Install install = installsRepo.getInstallForServer(serverId);
 
@@ -89,38 +127,15 @@ public class AngelCompetition
 
         //Request for new elos
         Rankings rankingsForServer = rankingsRepo.getRankingsForServer(serverId);
+        Rankings formerRankings = rankingsForServer.deepClone();
 
         updateRankings(rankingsForServer);
+
+        // Check who changed
+        displayChanges(install.getRankingsId(), serverId, rankingsForServer, formerRankings);
+
         rankingsRepo.updateRankings(rankingsForServer);
-        displayWeekly(install.getRankingsId(), serverId, rankingsForServer);
-
     }
-
-    private static void displayWeekly(String channelId, String serverId, Rankings rankings)
-    {
-        MessageChannel messageChannel = (MessageChannel) client.getChannelById(Snowflake.of(channelId)).block();
-
-        List<String> collectNames = rankings.getRanks().stream()
-            .sorted(Comparator.comparingLong(Ranking::getMainRoleElo).reversed())
-            .map(e -> e.getBattletag() + " (*" + e.getMainRoleElo() + "*) " + (e.isPrivate() ? "PRIVATE PROFILE" : ""))
-            .collect(Collectors.toList());
-
-        List<String> collectRanks = rankings.getRanks().stream()
-            .sorted(Comparator.comparingLong(Ranking::getMainRoleElo).reversed())
-            .map(e -> "Tank " + e.getTankElo() + ", Damage " + e.getDamageElo() + ", Support " + e.getSupportElo())
-            .collect(Collectors.toList());
-
-        Consumer<EmbedCreateSpec> weekly = spec -> {
-            spec.setTitle("Weekly Stats");
-
-            IntStream.range(0, Math.min(collectNames.size(), 25))
-                .mapToObj(i -> Pair.with((i + 1) + ": " + collectNames.get(i), collectRanks.get(i)))
-                .forEach(pair -> spec.addField(pair.getValue0(), pair.getValue1(), false));
-        };
-
-        sendEmbed(messageChannel, serverId, weekly, "ranking_system_weekly");
-    }
-
 
     private static void checkForChanges(String serverId)
     {
@@ -135,15 +150,14 @@ public class AngelCompetition
 
         //Request for new elos
         Rankings rankingsForServer = rankingsRepo.getRankingsForServer(serverId);
-        String formerStats = rankingsForServer.getUniqueStats();
+        Rankings formerRankings = rankingsForServer.deepClone();
 
         updateRankings(rankingsForServer);
 
-        if (!rankingsForServer.getUniqueStats().equals(formerStats))
+        if (!rankingsForServer.getUniqueStats().equals(formerRankings.getUniqueStats()))
         {
             // Check who changed
-            rankingsForServer.setLeaderboard(rankingsForServer.getLeaderboard());
-            displayWeekly(install.getRankingsId(), serverId, rankingsForServer);
+            displayChanges(install.getRankingsId(), serverId, rankingsForServer, formerRankings);
         }
 
         rankingsRepo.updateRankings(rankingsForServer);
@@ -168,31 +182,9 @@ public class AngelCompetition
                 return ranking;
             }).collect(Collectors.toMap(Ranking::getBattletag, e -> e));
 
-        //Check for order
-        List<String> leaderboard = new LinkedList<>(rankingsForServer.getRanks()).stream()
-            .sorted(Comparator.comparingLong(Ranking::getMainRoleElo).reversed())
-            .map(e -> "(" + e.getMainRoleElo() + ") " + e.getBattletag())
-            .collect(Collectors.toList());
-
         rankingsForServer.setServerRanks(collect);
-        rankingsForServer.setLeaderboard(leaderboard);
     }
 
-
-    private static <T> boolean checkListChange(List<T> list1, List<T> list2)
-    {
-        if (list1 == null || list2 == null || list1.size() != list2.size())
-        { return false; }
-
-        Iterator<T> iterator1 = list1.iterator();
-        for (T t : list2)
-        {
-            if (!t.equals(iterator1.next()))
-            { return false; }
-        }
-
-        return true;
-    }
 
     public static Mono<Void> onStartRankings(MessageCreateEvent event)
     {
@@ -287,8 +279,8 @@ public class AngelCompetition
                 return;
             }
 
-            checkForChanges(serverId);
-            displayWeeklyUpdate(serverId);
+            displayScores(serverId);
+            //displayWeeklyUpdate(serverId);
         });
     }
 
