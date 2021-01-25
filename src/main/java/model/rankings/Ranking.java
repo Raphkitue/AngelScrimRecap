@@ -130,7 +130,7 @@ public class Ranking implements Jsonable
         damageElo = (long) jsonObject.get("damageElo");
         supportElo = (long) jsonObject.get("supportElo");
         openQElo = (long) jsonObject.get("openQElo");
-        privateProfile = (boolean) jsonObject.get("privateProfile");
+        privateProfile = (boolean) jsonObject.getOrDefault("privateProfile", false);
         return this;
     }
 
