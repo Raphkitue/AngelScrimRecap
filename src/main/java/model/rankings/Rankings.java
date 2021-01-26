@@ -59,7 +59,7 @@ public class Rankings implements Jsonable
 
     public String getUniqueStats()
     {
-        return playersRanks.values().stream().map(ranking -> ranking.getBattletag() + ranking.isPrivate() + ranking.getSupportElo() + ranking.getDamageElo() + ranking.getTankElo()).collect(Collectors.joining());
+        return playersRanks.values().stream().map(ranking -> ranking.getBattletag()+ ranking.getSupportElo() + ranking.getDamageElo() + ranking.getTankElo()).collect(Collectors.joining());
     }
 
     @Override
