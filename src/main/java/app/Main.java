@@ -31,7 +31,11 @@ public class Main
 
     public static void main(String[] args) throws IOException
     {
-        GatewayDiscordClient client = DiscordClient.create("Nzg3MzQ4MjgxMTQyNTQyMzY2.X9TpOg.1PuKldq-LKOJjZ38USgoR54wbwo").login().block();
+
+        String token = System.getenv("DISCORD_TOKEN");
+
+
+        GatewayDiscordClient client = DiscordClient.create(token).login().block();
 
         List<EventHandler> eventHandlers = new ArrayList<>();
         List<EventHandler> teamCommands = new ArrayList<>();
@@ -71,6 +75,8 @@ public class Main
         //Announcement command
         //Reset gdoc + notif + possibilite d'annuler
         //Better parse arguments
+        //Change team handling so that you assing a tag to someone but you add them by battletag
+        //Allow to edit messages for recap and display placeholders when saying who participates to the recap
 
         assert client != null;
 

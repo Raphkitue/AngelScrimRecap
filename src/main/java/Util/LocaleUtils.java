@@ -1,27 +1,30 @@
 package Util;
 
 import app.DependenciesContainer;
+import java.util.HashMap;
 import java.util.Locale;
 import java.util.Map;
 import java.util.ResourceBundle;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
 import model.Install;
+import reactor.util.Logger;
+import reactor.util.Loggers;
 import repository.installs.IInstallsRepository;
 
 public class LocaleUtils
 {
+    private static final Logger log = Loggers.getLogger(LocaleUtils.class);
 
     private static final IInstallsRepository installsRepo = DependenciesContainer.getInstance().getInstallsRepo();
 
-    private static final Map<String, ResourceBundle> locales = Stream.of(
-        ResourceBundle.getBundle("bottext", Locale.ENGLISH),
-        ResourceBundle.getBundle("bottext", Locale.FRANCE),
-        ResourceBundle.getBundle("bottext", Locale.GERMANY)
-    ).collect(Collectors.toMap(res -> res.getLocale().getLanguage(), res -> res));
+    private static final Map<String, ResourceBundle> locales = new HashMap<>();
 
+    static {
+        locales.put("de", ResourceBundle.getBundle("bottext", Locale.GERMAN));
+        locales.put("fr", ResourceBundle.getBundle("bottext", Locale.FRENCH));
+        locales.put("en", ResourceBundle.getBundle("bottext", Locale.ENGLISH));
+    }
 
     public static String getLocaleString(String serverId, String id, String ...additions)
     {

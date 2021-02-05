@@ -14,14 +14,14 @@ import repository.teams.JSONTeams;
 public class DependenciesContainer
 {
 
-    private static final IInstallsRepository installsRepo = new JSONInstalls("installs.json");
-    private static final ITeamsRepository teamsRepo = new JSONTeams("teams.json");
+    private final IInstallsRepository installsRepo;
+    private final ITeamsRepository teamsRepo;
 
-    private static final IRankingsRepository rankingsRepo = new JSONRankings("rankings.json");
+    private final IRankingsRepository rankingsRepo;
 
-    private static final IRecapRepository recapsRepo = new JSONRecaps("recaps.json");
+    private final IRecapRepository recapsRepo ;
 
-    private static final IOWAPI owApi = new OwApiCom();
+    private final IOWAPI owApi;
 
     private static final DependenciesContainer instance = new DependenciesContainer();
 
@@ -32,6 +32,12 @@ public class DependenciesContainer
 
     private DependenciesContainer()
     {
+        String rootFolder = System.getenv("PERSISTENCE_ROOT");
+        installsRepo = new JSONInstalls(rootFolder + "installs.json");
+        teamsRepo = new JSONTeams(rootFolder + "teams.json");
+        rankingsRepo = new JSONRankings(rootFolder + "rankings.json");
+        recapsRepo = new JSONRecaps(rootFolder + "recaps.json");
+        owApi = new OwApiCom();
     }
 
     public IOWAPI getOwApi()
