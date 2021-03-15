@@ -3,6 +3,7 @@ package app;
 import static support.AngelBot.readyHandler;
 
 import com.sun.net.httpserver.HttpServer;
+import controller.RankingsController;
 import discord4j.core.DiscordClient;
 import discord4j.core.GatewayDiscordClient;
 import discord4j.core.event.domain.message.MessageCreateEvent;
@@ -33,7 +34,7 @@ public class Main
     {
 
         String token = System.getenv("DISCORD_TOKEN");
-
+log.info(token);
 
         GatewayDiscordClient client = DiscordClient.create(token).login().block();
 
@@ -42,7 +43,7 @@ public class Main
         List<EventHandler> captainCommands = new ArrayList<>();
         List<EventHandler> channelCommands = new ArrayList<>();
 
-        eventHandlers.add(AngelBot::logMessages);
+        //eventHandlers.add(AngelBot::logMessages);
         eventHandlers.add(AngelBot::onSetupMessage);
         eventHandlers.add(AngelBot::onSetupVod);
         eventHandlers.add(AngelBot::onSetupDelay);
@@ -57,30 +58,37 @@ public class Main
         captainCommands.add(AngelRecap::onRecapStart);
         captainCommands.add(AngelRecap::onRecapFinish);
 
-        captainCommands.add(AngelCompetition::onStartRankings);
-        captainCommands.add(AngelCompetition::onRankingsConf);
+        channelCommands.add(AngelCompetition::onStartRankings);
+        channelCommands.add(AngelCompetition::onRankingsConf);
+        channelCommands.add(AngelCompetition::onRankingsRemove);
         eventHandlers.add(AngelCompetition::onRankingsEnroll);
+        channelCommands.add(AngelCompetition::onRankingsDelete);
         channelCommands.add(AngelCompetition::onRankingsUpdate);
 
         channelCommands.add(AngelTeam::onTeamCreate);
         channelCommands.add(AngelTeam::onTeamDelete);
-        channelCommands.add(AngelTeam::onTeamAddRole);
-        channelCommands.add(AngelTeam::onTeamAddUser);
+        channelCommands.add(AngelTeam::onTeamClean);
         channelCommands.add(AngelTeam::onTeamReset);
-        channelCommands.add(AngelTeam::onTeamRemoveUser);
         channelCommands.add(AngelTeam::onTeamSetCaptain);
         channelCommands.add(AngelTeam::onTeamsShow);
+        captainCommands.add(AngelTeam::onTeamRemoveUser);
+        captainCommands.add(AngelTeam::onTeamAddUser);
+        captainCommands.add(AngelTeam::onTeamAddRole);
 
+
+        //Ajouter elo moyen teams
+        //Create a master leaderboard with merged leaderboards
+
+        //Create annotation-based filtering
 
         //Announcement command
-        //Reset gdoc + notif + possibilite d'annuler
         //Better parse arguments
-        //Change team handling so that you assing a tag to someone but you add them by battletag
-        //Allow to edit messages for recap and display placeholders when saying who participates to the recap
+        //Add doc for command usage places
+
 
         assert client != null;
 
-        AngelCompetition.initialize(client);
+        RankingsController.initialize(client);
 
         Mono.when(
             readyHandler(client),
@@ -120,11 +128,11 @@ public class Main
 
     public static Mono<Void> teamMemberMessages(GatewayDiscordClient client, List<EventHandler> eventHandlers)
     {
-        return baseCommandHandler(client, eventHandlers, MessageFilters::inCorrectChannelFilter, MessageFilters::teamReadyFilter, MessageFilters::teamFilter);
+        return baseCommandHandler(client, eventHandlers, MessageFilters::teamReadyFilter, MessageFilters::teamFilter);
     }
     public static Mono<Void> captainMessages(GatewayDiscordClient client, List<EventHandler> eventHandlers)
     {
-        return baseCommandHandler(client, eventHandlers, MessageFilters::inCorrectChannelFilter, MessageFilters::teamReadyFilter, MessageFilters::captainFilter);
+        return baseCommandHandler(client, eventHandlers, MessageFilters::teamReadyFilter, MessageFilters::captainFilter);
     }
 
 

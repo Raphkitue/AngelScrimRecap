@@ -9,66 +9,97 @@ import java.util.stream.Collectors;
 import org.json.simple.JSONObject;
 import reactor.util.Logger;
 import reactor.util.Loggers;
+import support.AngelCompetition.RankingsMode;
 
 public class Rankings implements Jsonable
 {
 
     private static final Logger log = Loggers.getLogger(Rankings.class);
 
-    private String serverId;
-    private Map<String, Ranking> playersRanks = new HashMap<>();
+    private String lastMessageId;
+    private String mode;
+    private String channelId;
+    private Map<String, Player> playersRanks = new HashMap<>();
 
     public Rankings()
     {
     }
 
-    public Rankings(String serverId)
+    public Rankings(String channelId, String lastMessageId, String mode)
     {
-        this.serverId = serverId;
+        this.channelId = channelId;
+        this.lastMessageId = lastMessageId;
+        this.mode = mode;
     }
 
-    public Optional<Ranking> getPlayerRanks(String playername)
+    public Optional<Player> getPlayerRanks(String playername)
     {
         return Optional.ofNullable(playersRanks.get(playername));
     }
 
-    public Map<String, Ranking> getServerRanks()
+    public Map<String, Player> getServerRanks()
     {
         return playersRanks;
     }
 
-    public void setServerRanks(Map<String, Ranking> playersRanks)
+    public void setServerRanks(Map<String, Player> playersRanks)
     {
         this.playersRanks = playersRanks;
     }
 
-    public String getServerId()
-    {
-        return serverId;
-    }
-
-    public Collection<Ranking> getRanks()
+    public Collection<Player> getRanks()
     {
         return playersRanks.values();
     }
 
-    public void setRanking(Ranking ranking)
+    public String getChannelId()
     {
-        playersRanks.put(ranking.getBattletag(), ranking);
+        return channelId;
     }
 
-    public String getUniqueStats()
+    public void setChannelId(String channelId)
     {
-        return playersRanks.values().stream().map(ranking -> ranking.getBattletag()+ ranking.getSupportElo() + ranking.getDamageElo() + ranking.getTankElo()).collect(Collectors.joining());
+        this.channelId = channelId;
+    }
+
+    public String getLastMessageId()
+    {
+        return lastMessageId;
+    }
+
+    public void setLastMessageId(String lastMessageId)
+    {
+        this.lastMessageId = lastMessageId;
+    }
+
+    public void setRanking(Player player)
+    {
+        playersRanks.put(player.getBattletag(), player);
+    }
+
+    public void setMode(String mode)
+    {
+        this.mode = mode;
+    }
+
+    public String getMode()
+    {
+        return mode;
+    }
+
+    public void removeRanking(String battletag) {
+        playersRanks.remove(battletag);
     }
 
     @Override
     public JSONObject toJson()
     {
         JSONObject jsonObject = new JSONObject();
-        jsonObject.put("serverId", serverId);
+        jsonObject.put("mode", mode);
+        jsonObject.put("channelId", channelId);
+        jsonObject.put("lastMessageId", lastMessageId);
         JSONObject players = new JSONObject();
-        playersRanks.values().forEach(ranking -> players.put(ranking.getBattletag(), ranking.toJson()));
+        playersRanks.values().forEach(player -> players.put(player.getBattletag(), player.toJson()));
         jsonObject.put("players", players);
         return jsonObject;
 
@@ -77,25 +108,26 @@ public class Rankings implements Jsonable
     @Override
     public Jsonable fromJson(JSONObject jsonObject)
     {
-
-        serverId = (String) jsonObject.get("serverId");
+        mode = (String) jsonObject.getOrDefault("mode", RankingsMode.MAIN_ROLE.getValue());
+        channelId = (String) jsonObject.getOrDefault("channelId", "");
+        lastMessageId = (String) jsonObject.getOrDefault("lastMessageId", "");
         HashMap<String, JSONObject> players = (JSONObject) jsonObject.get("players");
 
         playersRanks = players.values().stream()
-            .map(j -> (Ranking) new Ranking().fromJson(j))
-            .collect(Collectors.toMap(Ranking::getBattletag, e -> e));
+            .map(j -> (Player) new Player().fromJson(j))
+            .collect(Collectors.toMap(Player::getBattletag, e -> e));
 
         return this;
     }
 
     public Rankings deepClone()
     {
-        Rankings rankings = new Rankings(serverId);
+        Rankings rankings = new Rankings(channelId, lastMessageId, mode);
 
         rankings.setServerRanks(
             playersRanks.values().stream()
-            .map(ranking -> new Ranking(ranking.getBattletag(), ranking.getMainRole(), ranking.getTankElo(), ranking.getDamageElo(), ranking.getSupportElo(), ranking.getOpenQElo(), ranking.isPrivate()))
-            .collect(Collectors.toMap(Ranking::getBattletag, r -> r))
+            .map(player -> new Player(player.getBattletag(), player.getMainRole(), player.getTankElo(), player.getDamageElo(), player.getSupportElo(), player.getOpenQElo(), player.isPrivate()))
+            .collect(Collectors.toMap(Player::getBattletag, r -> r))
         );
         return rankings;
     }

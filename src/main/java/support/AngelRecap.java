@@ -1,7 +1,12 @@
 package support;
 
+import static Util.LocaleUtils.getLocaleString;
 import static Util.MessageUtils.commandMessage;
 import static Util.MessageUtils.sendMessage;
+import static model.commands.commands.Recap.RECAP_ADD_LINE;
+import static model.commands.commands.Recap.RECAP_ADD_REPLAY;
+import static model.commands.commands.Recap.RECAP_FINISH;
+import static model.commands.commands.Recap.RECAP_START;
 
 import app.DependenciesContainer;
 import discord4j.common.util.Snowflake;
@@ -27,7 +32,8 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import model.Install;
-import model.commands.Command;
+import model.commands.Commander;
+import model.commands.Commands;
 import model.scrims.Recap;
 import model.scrims.Replay;
 import model.scrims.Team;
@@ -40,7 +46,8 @@ import repository.teams.ITeamsRepository;
 
 public class AngelRecap
 {
-    private static final List<ReactionEmoji> voteEmojis= Arrays.asList(
+
+    private static final List<ReactionEmoji> voteEmojis = Arrays.asList(
         ReactionEmoji.unicode("1️⃣"),
         ReactionEmoji.unicode("2️⃣"),
         ReactionEmoji.unicode("3️⃣"),
@@ -56,24 +63,24 @@ public class AngelRecap
     private static final ITeamsRepository teamsRepository = DependenciesContainer.getInstance().getTeamsRepo();
     private static final IRecapRepository recapsRepo = DependenciesContainer.getInstance().getRecapsRepo();
 
-    private static final long VOTING_TIME = 1000 * 20 * 60;
-
 
     private static final Map<String, Recap> currentRecaps = new HashMap<>();
 
     private static final Logger log = Loggers.getLogger(AngelRecap.class);
 
-    private static Team getTeamFromArgument(Command command, String serverId, String message)
+    private static Team getTeamFromArgument(Commands commander, String serverId, String message)
     {
         Team team;
-        Optional<String> teamname = command.getArgument(message, "teamname");
+        Optional<String> teamname = Commander.getArgument(commander, message, "teamname");
 
         if (teamname.isPresent())
-        { team = teamsRepository.getTeamById(Team.getTeamId(teamname.get(), serverId)); } else
+        { team = teamsRepository.getTeamById(Team.getTeamId(teamname.get(), serverId)); }
+        else
         {
             List<Team> teams = teamsRepository.getTeamsForServer(serverId);
             if (teams.size() != 1)
-            { team = null; } else
+            { team = null; }
+            else
             { team = teams.get(0); }
         }
         return team;
@@ -81,13 +88,13 @@ public class AngelRecap
 
     public static Mono<Void> onRecapStart(MessageCreateEvent event)
     {
-        return commandMessage(event, Command.RECAP_START, (command, e) -> {
+        return commandMessage(event, RECAP_START, (command, e) -> {
             String serverId = e.getGuildId().get().asString();
 
             Team team = getTeamFromArgument(command, serverId, e.getMessage().getContent());
             if (team == null)
             {
-                sendMessage(e.getMessage().getChannel(), serverId , "team_not_found");
+                sendMessage(e.getMessage().getChannel(), serverId, "team_not_found");
                 return;
             }
 
@@ -107,15 +114,13 @@ public class AngelRecap
 
             StringBuilder sb = new StringBuilder();
 
-            Arrays.stream(Command.values())
-                .filter(f -> f.getCommand().contains("recap"))
-                .filter(f -> !f.equals(Command.RECAP_START))
+            Arrays.stream(model.commands.commands.Recap.values())
                 .forEach(f -> {
                     sb.append(" - ")
                         .append(f.getCommand());
                     f.getArguments().forEach(g -> sb.append(" ").append(g.toString()));
                     sb.append(": ")
-                        .append(f.getDescription(serverId))
+                        .append(getLocaleString(serverId, command.getName()))
                         .append('\n');
                 });
 
@@ -126,11 +131,11 @@ public class AngelRecap
 
     public static Mono<Void> onRecapAddReplay(MessageCreateEvent event)
     {
-        return commandMessage(event, Command.RECAP_ADD_REPLAY, (command, e) -> {
+        return commandMessage(event, RECAP_ADD_REPLAY, (command, e) -> {
             String serverId = e.getGuildId().get().asString();
 
-            String mapname = command.getMandatoryArgument(e.getMessage().getContent(), "mapname");
-            String replaycode = command.getMandatoryArgument(e.getMessage().getContent(), "replaycode");
+            String mapname = Commander.getMandatoryArgument(command, e.getMessage(), "mapname");
+            String replaycode = Commander.getMandatoryArgument(command, e.getMessage(), "replaycode");
 
             Recap recap = currentRecaps.get(serverId);
             if (recap == null)
@@ -149,17 +154,17 @@ public class AngelRecap
 
     public static Mono<Void> onRecapAddLine(MessageCreateEvent event)
     {
-        return commandMessage(event, Command.RECAP_ADD_LINE, (command, e) -> {
+        return commandMessage(event, RECAP_ADD_LINE, (command, e) -> {
             String serverId = e.getGuildId().get().asString();
 
             Recap recap = currentRecaps.get(serverId);
             if (recap == null)
             {
-                sendMessage(e.getMessage().getChannel(), serverId,  "recap_not_running");
+                sendMessage(e.getMessage().getChannel(), serverId, "recap_not_running");
                 return;
             }
 
-            String userid = command.getArgument(e.getMessage().getContent(), "@username")
+            String userid = Commander.getArgument(command, e.getMessage().getContent(), "@username")
                 .filter(s -> teamsRepository.getTeamById(recap.getTeamId())
                     .getMembers().stream()
                     .filter(user -> user.getUserId().equals(e.getMessage().getAuthor().get().getId().asString()))
@@ -170,12 +175,10 @@ public class AngelRecap
                     .orElse("")
                 );
 
-
-            String review = command.getText(e.getMessage().getContent());
             recap.getReviews().put(event.getGuild()
                 .flatMap(g -> g.getMemberById(Snowflake.of(userid)))
                 .block()
-                .getNicknameMention(), review);
+                .getNicknameMention(), e.getMessage().getId().asString());
 
             recapsRepo.updateRecap(recap);
 
@@ -185,7 +188,7 @@ public class AngelRecap
 
     public static Mono<Void> onRecapFinish(MessageCreateEvent event)
     {
-        return commandMessage(event, Command.RECAP_FINISH, (command, e) -> {
+        return commandMessage(event, RECAP_FINISH, (command, e) -> {
             String serverId = e.getGuildId().get().asString();
 
             Recap recap = currentRecaps.get(serverId);
@@ -195,6 +198,15 @@ public class AngelRecap
                 return;
             }
 
+            recap.getReviews().keySet().forEach(nickname -> {
+                String reviewMessageNumber = recap.getReviews().get(nickname);
+                e.getMessage().getChannel()
+                    .flatMap(chann -> chann.getMessageById(Snowflake.of(reviewMessageNumber)))
+                    .blockOptional()
+                    .ifPresent(msg -> recap
+                        .getReviews()
+                        .replace(nickname, Commander.getText(command, msg.getContent())));
+            });
             //Schedule vote for favorite replay
             //Display scrim recap in total
             //
@@ -202,7 +214,8 @@ public class AngelRecap
             Install install = installsRepo.getInstallForServer(serverId);
             String recapId;
             if (install.getRecapsId() == null || install.getRecapsId().isEmpty())
-            { recapId = e.getMessage().getChannelId().asString(); } else
+            { recapId = e.getMessage().getChannelId().asString(); }
+            else
             { recapId = install.getRecapsId(); }
 
             MessageChannel messageChannel = (MessageChannel) e.getGuild().flatMap(guild -> guild.getChannelById(Snowflake.of(recapId))).block();
@@ -220,7 +233,7 @@ public class AngelRecap
                 {
                     handleVotes(install, recap, message, mapping);
                 }
-            }, VOTING_TIME);
+            }, (long) Integer.parseInt(install.getVoteDelay()) * 60 * 1000);
 
             currentRecaps.remove(serverId);
 
@@ -231,7 +244,8 @@ public class AngelRecap
     {
         String vodId;
         if (install.getVodId() == null || install.getVodId().isEmpty())
-        { vodId = voteMessage.getChannelId().asString(); } else
+        { vodId = voteMessage.getChannelId().asString(); }
+        else
         { vodId = install.getVodId(); }
 
         MessageChannel messageChannel = (MessageChannel) voteMessage.getGuild().flatMap(guild -> guild.getChannelById(Snowflake.of(vodId))).block();
@@ -267,9 +281,9 @@ public class AngelRecap
         i.set(0);
         Message message = sendMessage(channel, recap.getServerId(), "poll_display"
             , recap.getMapsPlayed().stream()
-            .peek(replay -> mapping.put(voteEmojis.get(i.get()), replay))
-            .map(replay -> (i.getAndIncrement() + 1) + ": " + replay.getMap() + " " + replay.getCode())
-            .collect(Collectors.joining("\n"))
+                .peek(replay -> mapping.put(voteEmojis.get(i.get()), replay))
+                .map(replay -> (i.getAndIncrement() + 1) + ": " + replay.getMap() + " " + replay.getCode())
+                .collect(Collectors.joining("\n"))
         );
 
         IntStream.rangeClosed(0, i.get() - 1)
@@ -285,8 +299,8 @@ public class AngelRecap
         String dateFormat = DateFormat.getDateInstance(DateFormat.DEFAULT, locale).format(date);
 
         sendMessage(channel, recap.getServerId(), "recap_display", dateFormat,
-             teamsRepository.getTeamById(recap.getTeamId()).getName() + ":\n"
-            + recap.getReviews().entrySet().stream().map(entry -> entry.getKey() + ": " + entry.getValue()).collect(Collectors.joining("\n"))
+            teamsRepository.getTeamById(recap.getTeamId()).getName() + ":\n"
+                + recap.getReviews().entrySet().stream().map(entry -> entry.getKey() + ": " + entry.getValue()).collect(Collectors.joining("\n"))
 
         );
     }

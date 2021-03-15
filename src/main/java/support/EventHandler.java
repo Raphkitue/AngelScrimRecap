@@ -18,6 +18,7 @@
 package support;
 
 import discord4j.core.event.domain.message.MessageCreateEvent;
+import exceptions.MissingArgumentException;
 import reactor.core.publisher.Mono;
 
 public interface EventHandler {

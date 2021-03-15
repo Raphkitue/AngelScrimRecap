@@ -3,6 +3,13 @@ package support;
 import static Util.LocaleUtils.getLocaleString;
 import static Util.MessageUtils.commandMessage;
 import static Util.MessageUtils.sendMessage;
+import static model.commands.commands.Setup.HELP;
+import static model.commands.commands.Setup.SETUP;
+import static model.commands.commands.Setup.SETUP_DELAY;
+import static model.commands.commands.Setup.SETUP_LANGUAGE;
+import static model.commands.commands.Setup.SETUP_RANKINGS;
+import static model.commands.commands.Setup.SETUP_RECAP;
+import static model.commands.commands.Setup.SETUP_VOD;
 
 import app.DependenciesContainer;
 import discord4j.common.util.Snowflake;
@@ -12,9 +19,16 @@ import discord4j.core.event.domain.message.MessageCreateEvent;
 import discord4j.core.object.entity.channel.GuildChannel;
 import discord4j.core.object.reaction.ReactionEmoji;
 import java.util.Arrays;
+import java.util.List;
+import java.util.Optional;
 import java.util.function.BiConsumer;
 import model.Install;
-import model.commands.Command;
+import model.commands.Commander;
+import model.commands.Commands;
+import model.commands.commands.Rankings;
+import model.commands.commands.Recap;
+import model.commands.commands.Setup;
+import model.commands.commands.Team;
 import reactor.core.publisher.Mono;
 import reactor.util.Logger;
 import reactor.util.Loggers;
@@ -42,12 +56,12 @@ public class AngelBot
 
     public static Mono<Void> onSetupMessage(MessageCreateEvent event)
     {
-        return commandMessage(event, Command.SETUP, (command, ev) -> {
+        return commandMessage(event, SETUP, (command, ev) -> {
 
             log.info("Creating channel for server");
             String serverId = event.getGuildId().get().asString();
 
-            String channelId = command.getArgument(ev.getMessage().getContent(), "#channel").orElse(null);
+            String channelId = Commander.getArgument(command, ev.getMessage().getContent(), "#channel").orElse(null);
             if (channelId != null)
             {
                 GuildChannel channel = ev.getGuild().flatMap(guild -> guild.getChannelById(Snowflake.of(channelId))).block();
@@ -58,17 +72,17 @@ public class AngelBot
                 {
                     installForServer.setChannelId(channel.getId().asString());
                     installsRepo.updateInstall(installForServer);
-                } else
+                }
+                else
                 { installsRepo.updateInstall(new Install(serverId, channel.getId().asString())); }
 
-
-                sendMessage(ev.getMessage().getChannel(), serverId,"channel_set_success", channel.getName());
+                sendMessage(ev.getMessage().getChannel(), serverId, "channel_set_success", channel.getName());
                 return;
             }
 
             if (installsRepo.installExists(serverId))
             {
-                sendMessage(ev.getMessage().getChannel(),serverId,"channel_set_fail");
+                sendMessage(ev.getMessage().getChannel(), serverId, "channel_set_fail");
                 return;
             }
 
@@ -81,7 +95,7 @@ public class AngelBot
                 );
             })
                 .flatMap(e -> {
-                    log.info(getLocaleString(serverId,"channel_set_success", e.getId().asString()));
+                    log.info(getLocaleString(serverId, "channel_set_success", e.getId().asString()));
                     installsRepo.updateInstall(new Install(event.getGuildId().get().asString(), e.getId().asString()));
                     return Mono.empty();
                 })
@@ -92,33 +106,34 @@ public class AngelBot
 
     public static Mono<Void> onSetupVod(MessageCreateEvent event)
     {
-        return setupSetting(event, Command.SETUP_VOD, "#channel", (Install::setVodId));
+        return setupSetting(event, SETUP_VOD, "#channel", (Install::setVodId));
     }
 
     public static Mono<Void> onSetupLang(MessageCreateEvent event)
     {
-        return setupSetting(event, Command.SETUP_LANGUAGE, "lang", (Install::setLang));
+        return setupSetting(event, SETUP_LANGUAGE, "lang", (Install::setLang));
     }
 
     public static Mono<Void> onSetupDelay(MessageCreateEvent event)
     {
-        return setupSetting(event, Command.SETUP_DELAY, "delay", (Install::setVoteDelay));
+        return setupSetting(event, SETUP_DELAY, "delay", (Install::setVoteDelay));
     }
 
     public static Mono<Void> onSetupRecap(MessageCreateEvent event)
     {
-        return setupSetting(event, Command.SETUP_RECAP, "#channel", (Install::setRecapsId));
-    }
-    public static Mono<Void> onSetupRankings(MessageCreateEvent event)
-    {
-        return setupSetting(event, Command.SETUP_RANKINGS, "#channel", (Install::setRankingsId));
+        return setupSetting(event, SETUP_RECAP, "#channel", (Install::setRecapsId));
     }
 
-    private static Mono<Void> setupSetting(MessageCreateEvent event, Command comm, String argname, BiConsumer<Install, String> action)
+    public static Mono<Void> onSetupRankings(MessageCreateEvent event)
+    {
+        return setupSetting(event, SETUP_RANKINGS, "#channel", (Install::setRankingsId));
+    }
+
+    private static Mono<Void> setupSetting(MessageCreateEvent event, Commands comm, String argname, BiConsumer<Install, String> action)
     {
         return commandMessage(event, comm, (command, e) -> {
             String serverId = e.getGuildId().get().asString();
-            String argument = command.getMandatoryArgument(e.getMessage().getContent(), argname);
+            String argument = Commander.getMandatoryArgument(command, e.getMessage(), argname);
 
             Install installForServer = installsRepo.getInstallForServer(serverId);
             if (installForServer == null)
@@ -136,25 +151,48 @@ public class AngelBot
 
     public static Mono<Void> onHelp(MessageCreateEvent event)
     {
-        return commandMessage(event, Command.HELP, (command, ev) -> {
+        return commandMessage(event, HELP, (command, ev) -> {
             StringBuilder sb = new StringBuilder();
             String serverId = ev.getGuildId().get().asString();
-
+            Optional<String> category = Commander.getArgument(command, ev.getMessage().getContent(), "category");
             sb.append("\n");
 
-            Arrays.stream(Command.values())
-                .forEach(e -> {
-                    sb.append(" - ")
-                        .append(e.getCommand());
-                    e.getArguments().forEach(f -> sb.append(" ").append(f.toString()));
-                    sb.append(": ")
-                        .append(e.getDescription(serverId))
-                        .append('\n');
-                });
+            if (category.isEmpty() || category.get().equals("setup"))
+            {
+                sb.append(getLocaleString(serverId, "setup_category"));
+                getCommandsDescription(Arrays.asList(Setup.values()), serverId, sb);
+            }
+            if (category.isEmpty() || category.get().equals("team"))
+            {
+                sb.append(getLocaleString(serverId, "team_category"));
+                getCommandsDescription(Arrays.asList(Team.values()), serverId, sb);
+            }
+            if (category.isEmpty() || category.get().equals("recap"))
+            {
+                sb.append(getLocaleString(serverId, "recap_category"));
+                getCommandsDescription(Arrays.asList(Recap.values()), serverId, sb);
+            }
+            if (category.isEmpty() || category.get().equals("rankings"))
+            {
+                sb.append(getLocaleString(serverId, "rankings_category"));
+                getCommandsDescription(Arrays.asList(Rankings.values()), serverId, sb);
+            }
 
             sendMessage(event.getMessage().getChannel(), serverId, "help_intro", sb.toString());
         });
 
+    }
+
+    private static void getCommandsDescription(List<Commands> commands, String serverId, StringBuilder sb)
+    {
+        commands.forEach(e -> {
+            sb.append(" - ")
+                .append(e.getCommand());
+            e.getArguments().forEach(f -> sb.append(" ").append(f.toString()));
+            sb.append(": ")
+                .append(getLocaleString(serverId, e.getName()))
+                .append('\n');
+        });
     }
 
 

@@ -3,7 +3,7 @@ package model.rankings;
 import Util.Jsonable;
 import org.json.simple.JSONObject;
 
-public class Ranking implements Jsonable
+public class Player implements Jsonable
 {
     private String battletag;
     private String mainRole;
@@ -13,11 +13,11 @@ public class Ranking implements Jsonable
     private long openQElo;
     private boolean privateProfile;
 
-    public Ranking()
+    public Player()
     {
     }
 
-    public Ranking(String battletag, String mainRole, long tankElo, long damageElo, long supportElo, long openQElo, boolean privateProfile)
+    public Player(String battletag, String mainRole, long tankElo, long damageElo, long supportElo, long openQElo, boolean privateProfile)
     {
         this.battletag = battletag;
         this.mainRole = mainRole;
@@ -118,7 +118,6 @@ public class Ranking implements Jsonable
         jsonObject.put("openQElo", openQElo);
         jsonObject.put("privateProfile", privateProfile);
         return jsonObject;
-
     }
 
     @Override

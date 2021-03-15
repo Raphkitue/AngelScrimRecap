@@ -1,18 +1,18 @@
 package repository.rankings.recap;
 
 import java.util.Collection;
-import model.rankings.Ranking;
+import model.rankings.Player;
 import model.rankings.Rankings;
 
 public interface IRankingsRepository
 {
-    Rankings getRankingsForServer(String serverId);
+    Rankings getRanking(String channelId);
     Collection<Rankings> getRankings();
-    Ranking getRankingsForServerPlayer(String serverId, String playername);
+    Player getRankingsForServerPlayer(String channelId, String playername);
 
     void updateRankings(Rankings rankings);
 
-    boolean rankingsExist(String serverid);
+    boolean rankingsExist(String channelId);
 
-    void deleteRankings(String serverId);
+    void deleteRankings(String channelId);
 }

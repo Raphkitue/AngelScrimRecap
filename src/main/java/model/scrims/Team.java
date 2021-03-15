@@ -58,6 +58,11 @@ public class Team implements Jsonable
         return members;
     }
 
+    public void setMembers(Set<User> members)
+    {
+        this.members = members;
+    }
+
     public static String getTeamId(String name, String serverId)
     {return name + "-" + serverId;}
 

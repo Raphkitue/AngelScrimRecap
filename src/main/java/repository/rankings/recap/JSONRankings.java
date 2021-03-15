@@ -7,7 +7,7 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.stream.Collectors;
-import model.rankings.Ranking;
+import model.rankings.Player;
 import model.rankings.Rankings;
 import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
@@ -70,9 +70,9 @@ public class JSONRankings implements IRankingsRepository
     }
 
     @Override
-    public Rankings getRankingsForServer(String serverId)
+    public Rankings getRanking(String channelId)
     {
-        return ranks.get(serverId);
+        return ranks.get(channelId);
     }
 
     @Override
@@ -82,28 +82,28 @@ public class JSONRankings implements IRankingsRepository
     }
 
     @Override
-    public Ranking getRankingsForServerPlayer(String serverId, String playername)
+    public Player getRankingsForServerPlayer(String channelId, String playername)
     {
-        return ranks.get(serverId).getPlayerRanks(playername).orElse(new Ranking());
+        return ranks.get(channelId).getPlayerRanks(playername).orElse(new Player());
     }
 
     @Override
     public void updateRankings(Rankings rankings)
     {
-        ranks.put(rankings.getServerId(), rankings);
+        ranks.put(rankings.getChannelId(), rankings);
         storeRankings();
     }
 
     @Override
-    public boolean rankingsExist(String serverid)
+    public boolean rankingsExist(String channelId)
     {
-        return ranks.containsKey(serverid);
+        return ranks.containsKey(channelId);
     }
 
     @Override
-    public void deleteRankings(String serverId)
+    public void deleteRankings(String channelId)
     {
-        ranks.remove(serverId);
+        ranks.remove(channelId);
         storeRankings();
     }
 
