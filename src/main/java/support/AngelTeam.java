@@ -225,11 +225,11 @@ public class AngelTeam
 
         Install installForServer = installsRepository.getInstallForServer(serverId);
 
-        return installForServer.getChannelId().equals(event.getMessage().getChannelId().asString())
-            || (!team.getMembers().isEmpty() && team.getMembers()
+        return !installForServer.getChannelId().equals(event.getMessage().getChannelId().asString())
+            && !team.getMembers().isEmpty() && team.getMembers()
             .stream()
             .filter(member -> member.getRole().equals("captain"))
-            .noneMatch(member -> member.getUserId().equals(event.getMessage().getAuthor().get().getId().asString())));
+            .noneMatch(member -> member.getUserId().equals(event.getMessage().getAuthor().get().getId().asString()));
 
     }
 
