@@ -29,6 +29,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
+import model.Install;
 import model.commands.Commander;
 import model.commands.Commands;
 import model.scrims.Team;
@@ -37,12 +38,14 @@ import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.util.Logger;
 import reactor.util.Loggers;
+import repository.installs.IInstallsRepository;
 import repository.teams.ITeamsRepository;
 
 public class AngelTeam
 {
 
     private static final ITeamsRepository teamsRepository = DependenciesContainer.getInstance().getTeamsRepo();
+    private static final IInstallsRepository installsRepository = DependenciesContainer.getInstance().getInstallsRepo();
 
     private static final Logger log = Loggers.getLogger(AngelTeam.class);
 
@@ -111,9 +114,11 @@ public class AngelTeam
         return team;
     }
 
-    private static String getChannelMention(MessageCreateEvent event, String channelId){
+    private static String getChannelMention(MessageCreateEvent event, String channelId)
+    {
 
-        if(channelId == null || channelId.isEmpty()){
+        if (channelId == null || channelId.isEmpty())
+        {
             return "";
         }
         return event.getGuild()
@@ -199,11 +204,6 @@ public class AngelTeam
             String roleId = Commander.getMandatoryArgument(command, e.getMessage(), "@rolename");
 
             Team team = getTeamFromArgument(command, serverId, e.getMessage());
-            if (team == null)
-            {
-                sendMessage(e.getMessage().getChannel(), serverId, "team_not_found");
-                return;
-            }
 
             Set<User> teamMembers = team.getMembers();
 
@@ -220,6 +220,19 @@ public class AngelTeam
         });
     }
 
+    public static boolean unauthorizedAdd(MessageCreateEvent event, Team team, String serverId)
+    {
+
+        Install installForServer = installsRepository.getInstallForServer(serverId);
+
+        return installForServer.getChannelId().equals(event.getMessage().getChannelId().asString())
+            || (!team.getMembers().isEmpty() && team.getMembers()
+            .stream()
+            .filter(member -> member.getRole().equals("captain"))
+            .noneMatch(member -> member.getUserId().equals(event.getMessage().getAuthor().get().getId().asString())));
+
+    }
+
     public static Mono<Void> onTeamAddUser(MessageCreateEvent event)
     {
         return commandMessage(event, TEAM_ADD_USER, (command, e) -> {
@@ -227,9 +240,10 @@ public class AngelTeam
             String username = Commander.getMandatoryArgument(command, e.getMessage(), "@username");
 
             Team team = getTeamFromArgument(command, serverId, e.getMessage());
-            if (team == null)
+
+            if (unauthorizedAdd(e, team, serverId))
             {
-                sendMessage(e.getMessage().getChannel(), serverId, "team_not_found");
+                sendMessage(e.getMessage().getChannel(), serverId, "unauthorized_add");
                 return;
             }
 
@@ -287,9 +301,10 @@ public class AngelTeam
             String username = Commander.getMandatoryArgument(command, e.getMessage(), "@username");
 
             Team team = getTeamFromArgument(command, serverId, e.getMessage());
-            if (team == null)
+
+            if (unauthorizedAdd(e, team, serverId))
             {
-                sendMessage(e.getMessage().getChannel(), serverId, "team_not_found");
+                sendMessage(e.getMessage().getChannel(), serverId, "unauthorized_add");
                 return;
             }
 

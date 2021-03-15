@@ -183,7 +183,7 @@ public class AngelRecap
                     .blockOptional()
                     .ifPresent(msg -> recap
                         .getReviews()
-                        .replace(nickname, Commander.getText(command, msg.getContent())));
+                        .replace(nickname, Commander.getText(RECAP_ADD_LINE, msg.getContent())));
             });
             //Schedule vote for favorite replay
             //Display scrim recap in total
@@ -212,7 +212,7 @@ public class AngelRecap
                 }
             }, (long) 20 * 60 * 1000);
 
-            currentRecaps.remove(serverId);
+            currentRecaps.remove(team.getId());
 
         });
     }

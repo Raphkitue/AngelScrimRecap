@@ -61,8 +61,8 @@ log.info(token);
         channelCommands.add(AngelCompetition::onRankingsDelete);
         channelCommands.add(AngelCompetition::onRankingsUpdate);
 
-        eventHandlers.add(AngelTeam::onSetupVod);
-        eventHandlers.add(AngelTeam::onSetupRecap);
+        channelCommands.add(AngelTeam::onSetupVod);
+        channelCommands.add(AngelTeam::onSetupRecap);
         channelCommands.add(AngelTeam::onTeamCreate);
         channelCommands.add(AngelTeam::onTeamShowAll);
         channelCommands.add(AngelTeam::onTeamDelete);
@@ -70,9 +70,9 @@ log.info(token);
         channelCommands.add(AngelTeam::onTeamReset);
         channelCommands.add(AngelTeam::onTeamSetCaptain);
         channelCommands.add(AngelTeam::onTeamsShow);
-        captainCommands.add(AngelTeam::onTeamRemoveUser);
-        captainCommands.add(AngelTeam::onTeamAddUser);
-        captainCommands.add(AngelTeam::onTeamAddRole);
+        eventHandlers.add(AngelTeam::onTeamRemoveUser);
+        eventHandlers.add(AngelTeam::onTeamAddUser);
+        channelCommands.add(AngelTeam::onTeamAddRole);
 
 
         //Ajouter elo moyen teams
