@@ -2,7 +2,10 @@ package support;
 
 import static Util.MessageUtils.commandMessage;
 import static Util.MessageUtils.sendMessage;
+import static model.commands.commands.Team.SETUP_RECAP;
+import static model.commands.commands.Team.SETUP_VOD;
 import static model.commands.commands.Team.TEAMS_SHOW;
+import static model.commands.commands.Team.TEAMS_SHOW_NAMES;
 import static model.commands.commands.Team.TEAM_ADD_ROLE;
 import static model.commands.commands.Team.TEAM_ADD_USER;
 import static model.commands.commands.Team.TEAM_CLEAN;
@@ -17,7 +20,11 @@ import discord4j.common.util.Snowflake;
 import discord4j.core.event.domain.message.MessageCreateEvent;
 import discord4j.core.object.entity.Guild;
 import discord4j.core.object.entity.Member;
+import discord4j.core.object.entity.Message;
+import discord4j.core.object.entity.channel.Channel;
+import discord4j.core.object.reaction.ReactionEmoji;
 import discord4j.core.retriever.EntityRetrievalStrategy;
+import exceptions.MissingArgumentException;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
@@ -45,11 +52,6 @@ public class AngelTeam
             String serverId = e.getGuildId().get().asString();
 
             String teamname = Commander.getMandatoryArgument(command, e.getMessage(), "teamname");
-            if (teamname == null)
-            {
-                sendMessage(e.getMessage().getChannel(), serverId, "team_put_name");
-                return;
-            }
 
             if (teamsRepository.createTeam(new Team(serverId, teamname)))
             { sendMessage(e.getMessage().getChannel(), serverId, "team_created", teamname); }
@@ -77,7 +79,7 @@ public class AngelTeam
         return commandMessage(event, TEAM_RESET, (command, e) -> {
             String serverId = e.getGuildId().get().asString();
 
-            Team team = getTeamFromArgument(command, serverId, e.getMessage().getContent());
+            Team team = getTeamFromArgument(command, serverId, e.getMessage());
 
             team.getMembers().clear();
 
@@ -87,10 +89,10 @@ public class AngelTeam
         });
     }
 
-    private static Team getTeamFromArgument(Commands command, String serverId, String message)
+    public static Team getTeamFromArgument(Commands command, String serverId, Message message) throws MissingArgumentException
     {
         Team team;
-        Optional<String> teamname = Commander.getArgument(command, message, "teamname");
+        Optional<String> teamname = Commander.getArgument(command, message.getContent(), "teamname");
 
         if (teamname.isPresent())
         { team = teamsRepository.getTeamById(Team.getTeamId(teamname.get(), serverId)); }
@@ -102,13 +104,30 @@ public class AngelTeam
             else
             { team = teams.get(0); }
         }
+        if (team == null)
+        {
+            throw new MissingArgumentException("missing", "teamname", message.getChannelId().asString(), message.getGuildId().orElse(Snowflake.of(0)).asString());
+        }
         return team;
+    }
+
+    private static String getChannelMention(MessageCreateEvent event, String channelId){
+
+        if(channelId == null || channelId.isEmpty()){
+            return "";
+        }
+        return event.getGuild()
+            .flatMap(guild -> guild.getChannelById(Snowflake.of(channelId)))
+            .map(Channel::getMention).block();
     }
 
     private static void displayTeam(MessageCreateEvent event, Team team)
     {
-        sendMessage(event.getMessage().getChannel(), team.getServerId(), "team_display", team.getName()
-            , team.getMembers().stream().map(user -> user.getName() + ": " + user.getRole() + "\n").collect(Collectors.joining())
+        sendMessage(event.getMessage().getChannel(), team.getServerId(), "team_display",
+            team.getName(),
+            getChannelMention(event, team.getChannelId()),
+            getChannelMention(event, team.getVodId()),
+            team.getMembers().stream().map(user -> user.getName() + ": " + user.getRole() + "\n").collect(Collectors.joining())
         );
     }
 
@@ -117,13 +136,59 @@ public class AngelTeam
         return commandMessage(event, TEAMS_SHOW, (command, e) -> {
             String serverId = e.getGuildId().get().asString();
 
-            Team team = getTeamFromArgument(command, serverId, e.getMessage().getContent());
+            Team team = getTeamFromArgument(command, serverId, e.getMessage());
 
-            if (team == null)
-            { sendMessage(e.getMessage().getChannel(), serverId, "team_not_found"); }
-            else
-            { displayTeam(event, team);}
+            displayTeam(event, team);
 
+        });
+    }
+
+    public static Mono<Void> onTeamShowAll(MessageCreateEvent event)
+    {
+        return commandMessage(event, TEAMS_SHOW_NAMES, (command, e) -> {
+            String serverId = e.getGuildId().get().asString();
+
+            String teams = teamsRepository.getTeamsForServer(serverId).stream()
+                .map(Team::getName).collect(Collectors.joining(" - "));
+
+            sendMessage(e.getMessage().getChannel(), serverId, "teams_names", teams);
+
+        });
+    }
+
+    public static Mono<Void> onSetupVod(MessageCreateEvent event)
+    {
+        return commandMessage(event, SETUP_VOD, (command, e) -> {
+            String serverId = e.getGuildId().get().asString();
+
+            String argument = Commander.getMandatoryArgument(command, e.getMessage(), "#channel");
+
+            Team team = getTeamFromArgument(command, serverId, e.getMessage());
+
+            team.setVodId(argument);
+
+            teamsRepository.updateTeam(team);
+            e.getMessage().addReaction(ReactionEmoji.unicode("✅")).block();
+
+            displayTeam(event, team);
+        });
+    }
+
+    public static Mono<Void> onSetupRecap(MessageCreateEvent event)
+    {
+        return commandMessage(event, SETUP_RECAP, (command, e) -> {
+            String serverId = e.getGuildId().get().asString();
+
+            String argument = Commander.getMandatoryArgument(command, e.getMessage(), "#channel");
+
+            Team team = getTeamFromArgument(command, serverId, e.getMessage());
+
+            team.setRecapChannelId(argument);
+
+            teamsRepository.updateTeam(team);
+            e.getMessage().addReaction(ReactionEmoji.unicode("✅")).block();
+
+            displayTeam(event, team);
         });
     }
 
@@ -133,7 +198,7 @@ public class AngelTeam
             String serverId = e.getGuildId().get().asString();
             String roleId = Commander.getMandatoryArgument(command, e.getMessage(), "@rolename");
 
-            Team team = getTeamFromArgument(command, serverId, e.getMessage().getContent());
+            Team team = getTeamFromArgument(command, serverId, e.getMessage());
             if (team == null)
             {
                 sendMessage(e.getMessage().getChannel(), serverId, "team_not_found");
@@ -161,7 +226,7 @@ public class AngelTeam
             String serverId = e.getGuildId().get().asString();
             String username = Commander.getMandatoryArgument(command, e.getMessage(), "@username");
 
-            Team team = getTeamFromArgument(command, serverId, e.getMessage().getContent());
+            Team team = getTeamFromArgument(command, serverId, e.getMessage());
             if (team == null)
             {
                 sendMessage(e.getMessage().getChannel(), serverId, "team_not_found");
@@ -189,7 +254,7 @@ public class AngelTeam
         return commandMessage(event, TEAM_CLEAN, (command, e) -> {
             String serverId = e.getGuildId().get().asString();
 
-            Team team = getTeamFromArgument(command, serverId, e.getMessage().getContent());
+            Team team = getTeamFromArgument(command, serverId, e.getMessage());
             if (team == null)
             {
                 sendMessage(e.getMessage().getChannel(), serverId, "team_not_found");
@@ -205,7 +270,7 @@ public class AngelTeam
                     .blockOptional();
                 return block.isPresent();
             })
-            .collect(Collectors.toSet());
+                .collect(Collectors.toSet());
 
             team.setMembers(teamMembers);
 
@@ -221,7 +286,7 @@ public class AngelTeam
             String serverId = e.getGuildId().get().asString();
             String username = Commander.getMandatoryArgument(command, e.getMessage(), "@username");
 
-            Team team = getTeamFromArgument(command, serverId, e.getMessage().getContent());
+            Team team = getTeamFromArgument(command, serverId, e.getMessage());
             if (team == null)
             {
                 sendMessage(e.getMessage().getChannel(), serverId, "team_not_found");
@@ -248,7 +313,7 @@ public class AngelTeam
             String serverId = e.getGuildId().get().asString();
             String userId = Commander.getMandatoryArgument(command, e.getMessage(), "@username");
 
-            Team team = getTeamFromArgument(command, serverId, e.getMessage().getContent());
+            Team team = getTeamFromArgument(command, serverId, e.getMessage());
             if (team == null)
             {
                 sendMessage(e.getMessage().getChannel(), serverId, "team_not_found");

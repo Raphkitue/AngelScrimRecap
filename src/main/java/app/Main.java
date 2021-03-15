@@ -45,13 +45,9 @@ log.info(token);
 
         //eventHandlers.add(AngelBot::logMessages);
         eventHandlers.add(AngelBot::onSetupMessage);
-        eventHandlers.add(AngelBot::onSetupVod);
         eventHandlers.add(AngelBot::onSetupDelay);
         eventHandlers.add(AngelBot::onSetupLang);
-        eventHandlers.add(AngelBot::onSetupRecap);
-        eventHandlers.add(AngelBot::onSetupRankings);
         eventHandlers.add(AngelBot::onHelp);
-
         teamCommands.add(AngelRecap::onRecapAddLine);
         teamCommands.add(AngelRecap::onRecapAddReplay);
 
@@ -65,7 +61,10 @@ log.info(token);
         channelCommands.add(AngelCompetition::onRankingsDelete);
         channelCommands.add(AngelCompetition::onRankingsUpdate);
 
+        eventHandlers.add(AngelTeam::onSetupVod);
+        eventHandlers.add(AngelTeam::onSetupRecap);
         channelCommands.add(AngelTeam::onTeamCreate);
+        channelCommands.add(AngelTeam::onTeamShowAll);
         channelCommands.add(AngelTeam::onTeamDelete);
         channelCommands.add(AngelTeam::onTeamClean);
         channelCommands.add(AngelTeam::onTeamReset);

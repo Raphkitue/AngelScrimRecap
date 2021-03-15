@@ -2,7 +2,6 @@ package controller;
 
 import static Util.LocaleUtils.getLocaleString;
 import static Util.MessageUtils.sendEmbed;
-import static Util.MessageUtils.sendMessage;
 
 import app.DependenciesContainer;
 import controller.view.IRankView;
@@ -21,14 +20,12 @@ import java.util.TimerTask;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
-import model.Install;
 import model.rankings.Player;
 import model.rankings.Rankings;
 import net.owapi.IOWAPI;
 import org.javatuples.Pair;
 import org.javatuples.Quartet;
 import reactor.core.publisher.Mono;
-import repository.installs.IInstallsRepository;
 import repository.rankings.recap.IRankingsRepository;
 
 public class RankingsController
@@ -42,7 +39,6 @@ public class RankingsController
     private static final String SCORE_DOWN = ":arrow_lower_right:";
     private static final String SCORE_UP = ":arrow_upper_right:";
 
-    private static final IInstallsRepository installsRepo = DependenciesContainer.getInstance().getInstallsRepo();
     private static final IRankingsRepository rankingsRepo = DependenciesContainer.getInstance().getRankingsRepo();
 
     public static void initialize(GatewayDiscordClient client)
@@ -97,12 +93,12 @@ public class RankingsController
         return formerElo == newElo ? String.valueOf(newElo) : ((newElo > formerElo ? SCORE_UP : SCORE_DOWN) + newElo);
     }
 
-    public static void displayChanges(String channelId, String serverId, Rankings rankings, Rankings formerRankings)
+    public static void displayChanges(String serverId, Rankings rankings, Rankings formerRankings)
     {
-        MessageChannel messageChannel = (MessageChannel) client.getChannelById(Snowflake.of(channelId)).block();
+        MessageChannel messageChannel = (MessageChannel) client.getChannelById(Snowflake.of(rankings.getChannelId())).block();
 
         if (messageChannel == null) {
-            rankingsRepo.deleteRankings(channelId);
+            rankingsRepo.deleteRankings(rankings.getChannelId());
             return;
         }
 
@@ -142,22 +138,13 @@ public class RankingsController
         updateRankings(rankingsForServer);
 
         // Check who changed
-        displayChanges(rankingsForServer.getChannelId(), serverId, rankingsForServer, formerRankings);
+        displayChanges(serverId, rankingsForServer, formerRankings);
 
         rankingsRepo.updateRankings(rankingsForServer);
     }
 
     public static void checkForChanges(String channelId)
     {
-        Install install = installsRepo.getInstallForServer(channelId);
-
-        if (install.getRankingsId() == null || install.getRankingsId().isEmpty())
-        {
-            MessageChannel messageChannel = (MessageChannel) client.getChannelById(Snowflake.of(install.getChannelId())).block();
-            sendMessage(messageChannel, install.getServerId(), "ranking_system_not_setup");
-            return;
-        }
-
         //Request for new elos
         Rankings rankingsForServer = rankingsRepo.getRanking(channelId);
         Rankings formerRankings = rankingsForServer.deepClone();
@@ -169,7 +156,7 @@ public class RankingsController
         if (!rankView.displaysEquals(formerRankings, rankingsForServer))
         {
             // Check who changed
-            displayChanges(install.getRankingsId(), channelId, rankingsForServer, formerRankings);
+            displayChanges(channelId, rankingsForServer, formerRankings);
         }
 
         rankingsRepo.updateRankings(rankingsForServer);

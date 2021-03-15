@@ -7,6 +7,7 @@ import static model.commands.commands.Recap.RECAP_ADD_LINE;
 import static model.commands.commands.Recap.RECAP_ADD_REPLAY;
 import static model.commands.commands.Recap.RECAP_FINISH;
 import static model.commands.commands.Recap.RECAP_START;
+import static support.AngelTeam.getTeamFromArgument;
 
 import app.DependenciesContainer;
 import discord4j.common.util.Snowflake;
@@ -25,15 +26,12 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
-import java.util.Optional;
 import java.util.Timer;
 import java.util.TimerTask;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
-import model.Install;
 import model.commands.Commander;
-import model.commands.Commands;
 import model.scrims.Recap;
 import model.scrims.Replay;
 import model.scrims.Team;
@@ -68,41 +66,18 @@ public class AngelRecap
 
     private static final Logger log = Loggers.getLogger(AngelRecap.class);
 
-    private static Team getTeamFromArgument(Commands commander, String serverId, String message)
-    {
-        Team team;
-        Optional<String> teamname = Commander.getArgument(commander, message, "teamname");
-
-        if (teamname.isPresent())
-        { team = teamsRepository.getTeamById(Team.getTeamId(teamname.get(), serverId)); }
-        else
-        {
-            List<Team> teams = teamsRepository.getTeamsForServer(serverId);
-            if (teams.size() != 1)
-            { team = null; }
-            else
-            { team = teams.get(0); }
-        }
-        return team;
-    }
-
     public static Mono<Void> onRecapStart(MessageCreateEvent event)
     {
         return commandMessage(event, RECAP_START, (command, e) -> {
             String serverId = e.getGuildId().get().asString();
 
-            Team team = getTeamFromArgument(command, serverId, e.getMessage().getContent());
-            if (team == null)
-            {
-                sendMessage(e.getMessage().getChannel(), serverId, "team_not_found");
-                return;
-            }
+            Team team = getTeamFromArgument(command, serverId, e.getMessage());
 
             Date date = new Date();
             Locale locale = new Locale("en", "FR");
             String dateFormat = DateFormat.getDateInstance(DateFormat.DEFAULT, locale).format(date);
 
-            if (currentRecaps.containsKey(serverId))
+            if (currentRecaps.containsKey(team.getId()))
             {
                 sendMessage(e.getMessage().getChannel(), serverId, "recap_running");
                 return;
@@ -110,7 +85,7 @@ public class AngelRecap
 
             Recap recap = new Recap(team.getId(), dateFormat, serverId);
             recapsRepo.updateRecap(recap);
-            currentRecaps.put(serverId, recap);
+            currentRecaps.put(team.getId(), recap);
 
             StringBuilder sb = new StringBuilder();
 
@@ -137,7 +112,8 @@ public class AngelRecap
             String mapname = Commander.getMandatoryArgument(command, e.getMessage(), "mapname");
             String replaycode = Commander.getMandatoryArgument(command, e.getMessage(), "replaycode");
 
-            Recap recap = currentRecaps.get(serverId);
+            Team team = getTeamFromArgument(command, serverId, e.getMessage());
+            Recap recap = currentRecaps.get(team.getId());
             if (recap == null)
             {
                 sendMessage(e.getMessage().getChannel(), serverId, "recap_not_running");
@@ -157,7 +133,8 @@ public class AngelRecap
         return commandMessage(event, RECAP_ADD_LINE, (command, e) -> {
             String serverId = e.getGuildId().get().asString();
 
-            Recap recap = currentRecaps.get(serverId);
+            Team team = getTeamFromArgument(command, serverId, e.getMessage());
+            Recap recap = currentRecaps.get(team.getId());
             if (recap == null)
             {
                 sendMessage(e.getMessage().getChannel(), serverId, "recap_not_running");
@@ -191,7 +168,8 @@ public class AngelRecap
         return commandMessage(event, RECAP_FINISH, (command, e) -> {
             String serverId = e.getGuildId().get().asString();
 
-            Recap recap = currentRecaps.get(serverId);
+            Team team = getTeamFromArgument(command, serverId, e.getMessage());
+            Recap recap = currentRecaps.get(team.getId());
             if (recap == null)
             {
                 sendMessage(e.getMessage().getChannel(), serverId, "recap_not_running");
@@ -211,12 +189,11 @@ public class AngelRecap
             //Display scrim recap in total
             //
 
-            Install install = installsRepo.getInstallForServer(serverId);
             String recapId;
-            if (install.getRecapsId() == null || install.getRecapsId().isEmpty())
+            if (team.getChannelId() == null || team.getChannelId().isEmpty())
             { recapId = e.getMessage().getChannelId().asString(); }
             else
-            { recapId = install.getRecapsId(); }
+            { recapId = team.getChannelId(); }
 
             MessageChannel messageChannel = (MessageChannel) e.getGuild().flatMap(guild -> guild.getChannelById(Snowflake.of(recapId))).block();
 
@@ -231,22 +208,22 @@ public class AngelRecap
                 @Override
                 public void run()
                 {
-                    handleVotes(install, recap, message, mapping);
+                    handleVotes(team, recap, message, mapping);
                 }
-            }, (long) Integer.parseInt(install.getVoteDelay()) * 60 * 1000);
+            }, (long) 20 * 60 * 1000);
 
             currentRecaps.remove(serverId);
 
         });
     }
 
-    private static void handleVotes(Install install, Recap recap, Message voteMessage, Map<ReactionEmoji, Replay> mapping)
+    private static void handleVotes(Team team, Recap recap, Message voteMessage, Map<ReactionEmoji, Replay> mapping)
     {
         String vodId;
-        if (install.getVodId() == null || install.getVodId().isEmpty())
+        if (team.getVodId() == null || team.getVodId().isEmpty())
         { vodId = voteMessage.getChannelId().asString(); }
         else
-        { vodId = install.getVodId(); }
+        { vodId = team.getVodId(); }
 
         MessageChannel messageChannel = (MessageChannel) voteMessage.getGuild().flatMap(guild -> guild.getChannelById(Snowflake.of(vodId))).block();
 

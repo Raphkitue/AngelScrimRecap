@@ -15,7 +15,10 @@ public enum Team implements Commands
     TEAM_CREATE("team create", Argument.mandatory("teamname")),
     TEAM_DELETE("team delete", Argument.mandatory("teamname")),
     TEAM_RESET("team reset", Argument.mandatory("teamname")),
-    TEAMS_SHOW("team show", Argument.optional("teamname"));
+    SETUP_VOD("setup vod", Argument.mandatory("#channel"), Argument.optional("teamname")),
+    SETUP_RECAP("setup recap", Argument.mandatory("#channel"), Argument.optional("teamname")),
+    TEAMS_SHOW("team show", Argument.optional("teamname")),
+    TEAMS_SHOW_NAMES("teams show");
 
 
     private final String command;

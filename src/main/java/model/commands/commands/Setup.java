@@ -7,11 +7,8 @@ import model.commands.Commands;
 
 public enum Setup implements Commands
 {
-    SETUP_VOD("setup vod", Argument.mandatory("#channel")),
     SETUP_LANGUAGE("setup lang", Argument.mandatory("lang")),
     SETUP_DELAY("setup vote", Argument.mandatory("delay")),
-    SETUP_RECAP("setup recap", Argument.mandatory("#channel")),
-    SETUP_RANKINGS("setup rankings", Argument.mandatory("#channel")),
     SETUP("setup bot", Argument.optional("#channel")),
     HELP("help", Argument.optional("category"));
 

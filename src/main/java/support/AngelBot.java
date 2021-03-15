@@ -7,9 +7,6 @@ import static model.commands.commands.Setup.HELP;
 import static model.commands.commands.Setup.SETUP;
 import static model.commands.commands.Setup.SETUP_DELAY;
 import static model.commands.commands.Setup.SETUP_LANGUAGE;
-import static model.commands.commands.Setup.SETUP_RANKINGS;
-import static model.commands.commands.Setup.SETUP_RECAP;
-import static model.commands.commands.Setup.SETUP_VOD;
 
 import app.DependenciesContainer;
 import discord4j.common.util.Snowflake;
@@ -104,11 +101,6 @@ public class AngelBot
         });
     }
 
-    public static Mono<Void> onSetupVod(MessageCreateEvent event)
-    {
-        return setupSetting(event, SETUP_VOD, "#channel", (Install::setVodId));
-    }
-
     public static Mono<Void> onSetupLang(MessageCreateEvent event)
     {
         return setupSetting(event, SETUP_LANGUAGE, "lang", (Install::setLang));
@@ -117,16 +109,6 @@ public class AngelBot
     public static Mono<Void> onSetupDelay(MessageCreateEvent event)
     {
         return setupSetting(event, SETUP_DELAY, "delay", (Install::setVoteDelay));
-    }
-
-    public static Mono<Void> onSetupRecap(MessageCreateEvent event)
-    {
-        return setupSetting(event, SETUP_RECAP, "#channel", (Install::setRecapsId));
-    }
-
-    public static Mono<Void> onSetupRankings(MessageCreateEvent event)
-    {
-        return setupSetting(event, SETUP_RANKINGS, "#channel", (Install::setRankingsId));
     }
 
     private static Mono<Void> setupSetting(MessageCreateEvent event, Commands comm, String argname, BiConsumer<Install, String> action)

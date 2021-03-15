@@ -12,15 +12,19 @@ public class Team implements Jsonable
 
     private String id;
     private String serverId;
+    private String channelId;
+    private String vodId;
     private String name;
 
     private Set<User> members;
 
-    public Team(String serverId, String name, Set<User> members)
+    public Team(String serverId, String name, Set<User> members, String channelId, String vodId)
     {
         this.serverId = serverId;
         this.name = name;
         this.members = members;
+        this.channelId = channelId;
+        this.vodId = vodId;
 
         this.id = getTeamId(name, serverId);
     }
@@ -30,12 +34,34 @@ public class Team implements Jsonable
         this.serverId = serverId;
         this.name = name;
         this.members = new HashSet<>();
+        this.channelId = "";
+        this.vodId = "";
 
         this.id = getTeamId(name, serverId);
     }
 
     public Team()
     {
+    }
+
+    public String getChannelId()
+    {
+        return channelId;
+    }
+
+    public void setRecapChannelId(String channelId)
+    {
+        this.channelId = channelId;
+    }
+
+    public String getVodId()
+    {
+        return vodId;
+    }
+
+    public void setVodId(String vodId)
+    {
+        this.vodId = vodId;
     }
 
     public String getId()
@@ -73,6 +99,8 @@ public class Team implements Jsonable
         JSONObject jsonObject = new JSONObject();
         jsonObject.put("id", getId());
         jsonObject.put("serverId", getServerId());
+        jsonObject.put("channelId", channelId);
+        jsonObject.put("vodId", vodId);
         jsonObject.put("name", getName());
         jsonObject.put("members", getMembers().stream().map(User::toJson).collect(Collectors.toList()));
         return jsonObject;
@@ -84,6 +112,8 @@ public class Team implements Jsonable
     {
         id = (String) jsonObject.get("id");
         serverId = (String) jsonObject.get("serverId");
+        channelId = (String) jsonObject.getOrDefault("channelId", "");
+        vodId = (String) jsonObject.getOrDefault("vodId", "");
         name = (String) jsonObject.get("name");
         members = ((List<JSONObject>) jsonObject.get("members")).stream().map(j -> (User) new User().fromJson(j)).collect(Collectors.toSet());
         return this;
