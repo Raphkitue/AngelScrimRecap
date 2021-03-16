@@ -1,5 +1,6 @@
 package support;
 
+import static Util.LocaleUtils.getLocaleString;
 import static Util.MessageUtils.commandMessage;
 import static Util.MessageUtils.sendMessage;
 import static model.commands.commands.Team.SETUP_RECAP;
@@ -13,6 +14,7 @@ import static model.commands.commands.Team.TEAM_CREATE;
 import static model.commands.commands.Team.TEAM_DELETE;
 import static model.commands.commands.Team.TEAM_REMOVE_USER;
 import static model.commands.commands.Team.TEAM_RESET;
+import static model.commands.commands.Team.TEAM_SET_BTAG;
 import static model.commands.commands.Team.TEAM_SET_CAPTAIN;
 
 import app.DependenciesContainer;
@@ -119,7 +121,7 @@ public class AngelTeam
 
         if (channelId == null || channelId.isEmpty())
         {
-            return "";
+            return getLocaleString(event.getGuildId().orElse(Snowflake.of(0)).asString(), "no_channel");
         }
         return event.getGuild()
             .flatMap(guild -> guild.getChannelById(Snowflake.of(channelId)))
@@ -341,6 +343,27 @@ public class AngelTeam
                 .filter(user -> user.getUserId().equals(userId))
                 .doOnNext(user -> user.setRole("captain"))
                 .subscribe();
+
+            teamsRepository.updateTeam(team);
+
+            displayTeam(event, team);
+        });
+    }
+
+    public static Mono<Void> onTeamSetBtag(MessageCreateEvent event)
+    {
+        return commandMessage(event, TEAM_SET_BTAG, (command, e) -> {
+            String serverId = e.getGuildId().get().asString();
+            String userId = Commander.getMandatoryArgument(command, e.getMessage(), "@username");
+            String btag = Commander.getMandatoryArgument(command, e.getMessage(), "battletag");
+
+            Team team = getTeamFromArgument(command, serverId, e.getMessage());
+
+            Set<User> teamMembers = team.getMembers();
+
+            teamMembers.stream()
+                .filter(user -> user.getUserId().equals(userId))
+                .forEach(user -> user.setBattletag(btag));
 
             teamsRepository.updateTeam(team);
 

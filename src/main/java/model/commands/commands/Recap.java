@@ -21,7 +21,7 @@ public enum Recap implements Commands
         this.command = command;
         this.arguments = Arrays.asList(arguments);
     }
- 
+
     @Override
     public String getName()
     {

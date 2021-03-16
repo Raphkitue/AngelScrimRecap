@@ -2,6 +2,7 @@ package support;
 
 import static Util.LocaleUtils.getLocaleString;
 import static Util.MessageUtils.commandMessage;
+import static Util.MessageUtils.sendEmbed;
 import static Util.MessageUtils.sendMessage;
 import static model.commands.commands.Recap.RECAP_ADD_LINE;
 import static model.commands.commands.Recap.RECAP_ADD_REPLAY;
@@ -18,6 +19,7 @@ import discord4j.core.object.entity.channel.MessageChannel;
 import discord4j.core.object.reaction.Reaction;
 import discord4j.core.object.reaction.ReactionEmoji;
 import discord4j.core.retriever.EntityRetrievalStrategy;
+import discord4j.rest.util.Color;
 import java.text.DateFormat;
 import java.util.Arrays;
 import java.util.Comparator;
@@ -99,7 +101,7 @@ public class AngelRecap
                         .append('\n');
                 });
 
-            sendMessage(event.getMessage().getChannel(), serverId, "scrim_created_intro", dateFormat, sb.toString());
+            sendMessage(event.getMessage().getChannel(), serverId, "scrim_created_intro", team.getName(), dateFormat, sb.toString());
 
         });
     }
@@ -256,11 +258,13 @@ public class AngelRecap
     {
         AtomicInteger i = new AtomicInteger();
         i.set(0);
-        Message message = sendMessage(channel, recap.getServerId(), "poll_display"
-            , recap.getMapsPlayed().stream()
-                .peek(replay -> mapping.put(voteEmojis.get(i.get()), replay))
-                .map(replay -> (i.getAndIncrement() + 1) + ": " + replay.getMap() + " " + replay.getCode())
-                .collect(Collectors.joining("\n"))
+        Message message = sendEmbed(channel, embedCreateSpec -> {
+                embedCreateSpec.setTitle(getLocaleString(recap.getServerId(), "poll_display"));
+                embedCreateSpec.setColor(Color.of(0x6CAEBE));
+                recap.getMapsPlayed().stream()
+                    .peek(replay -> mapping.put(voteEmojis.get(i.get()), replay))
+                    .forEach(replay -> embedCreateSpec.addField((i.getAndIncrement() + 1) + ": " + replay.getMap(), replay.getCode(), true));
+            }
         );
 
         IntStream.rangeClosed(0, i.get() - 1)

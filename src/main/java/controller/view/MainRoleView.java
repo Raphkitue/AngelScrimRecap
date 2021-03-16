@@ -7,6 +7,7 @@ import java.util.List;
 import java.util.stream.Collectors;
 import model.rankings.Player;
 import model.rankings.Rankings;
+import model.scrims.Team;
 import org.javatuples.Pair;
 
 public class MainRoleView implements IRankView
@@ -51,6 +52,19 @@ public class MainRoleView implements IRankView
             .map(e -> "Tank " + eloProgressEmoji(e.getValue1().getTankElo(), e.getValue0().getTankElo())
                 + ", Damage " + eloProgressEmoji(e.getValue1().getDamageElo(), e.getValue0().getDamageElo())
                 + ", Support " + eloProgressEmoji(e.getValue1().getSupportElo(), e.getValue0().getSupportElo()))
+            .collect(Collectors.toList());
+    }
+
+    @Override
+    public List<Pair<String, Double>> getTeamRank(List<Team> teams, Rankings rankings)
+    {
+        return teams.stream()
+            .map(team -> Pair.with(team.getName(),
+                team.getMembers().stream()
+                    .mapToLong(member -> rankings.getPlayerRanks(member.getBattletag()).map(Player::getMainRoleElo).orElse(0L))
+                    .filter(l -> l != 0)
+                    .average().orElse(0)
+            ))
             .collect(Collectors.toList());
     }
 }

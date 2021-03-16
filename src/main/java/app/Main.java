@@ -34,7 +34,6 @@ public class Main
     {
 
         String token = System.getenv("DISCORD_TOKEN");
-log.info(token);
 
         GatewayDiscordClient client = DiscordClient.create(token).login().block();
 
@@ -72,6 +71,7 @@ log.info(token);
         channelCommands.add(AngelTeam::onTeamsShow);
         eventHandlers.add(AngelTeam::onTeamRemoveUser);
         eventHandlers.add(AngelTeam::onTeamAddUser);
+        eventHandlers.add(AngelTeam::onTeamSetBtag);
         channelCommands.add(AngelTeam::onTeamAddRole);
 
 

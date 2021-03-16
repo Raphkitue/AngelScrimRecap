@@ -22,11 +22,13 @@ import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import model.rankings.Player;
 import model.rankings.Rankings;
+import model.scrims.Team;
 import net.owapi.IOWAPI;
 import org.javatuples.Pair;
 import org.javatuples.Quartet;
 import reactor.core.publisher.Mono;
 import repository.rankings.recap.IRankingsRepository;
+import repository.teams.ITeamsRepository;
 
 public class RankingsController
 {
@@ -40,6 +42,7 @@ public class RankingsController
     private static final String SCORE_UP = ":arrow_upper_right:";
 
     private static final IRankingsRepository rankingsRepo = DependenciesContainer.getInstance().getRankingsRepo();
+    private static final ITeamsRepository teamsRepo = DependenciesContainer.getInstance().getTeamsRepo();
 
     public static void initialize(GatewayDiscordClient client)
     {
@@ -97,12 +100,14 @@ public class RankingsController
     {
         MessageChannel messageChannel = (MessageChannel) client.getChannelById(Snowflake.of(rankings.getChannelId())).block();
 
-        if (messageChannel == null) {
+        if (messageChannel == null)
+        {
             rankingsRepo.deleteRankings(rankings.getChannelId());
             return;
         }
 
-        if (rankings.getLastMessageId() != null && !rankings.getLastMessageId().trim().isEmpty()){
+        if (rankings.getLastMessageId() != null && !rankings.getLastMessageId().trim().isEmpty())
+        {
             messageChannel.getMessageById(Snowflake.of(rankings.getLastMessageId()))
                 .flatMap(Message::delete)
                 .onErrorResume(elem -> Mono.empty())
@@ -113,10 +118,12 @@ public class RankingsController
         List<String> collectNames = rankView.getMainLines(rankings, formerRankings);
         List<String> collectRanks = rankView.getSecondLines(rankings, formerRankings);
 
+        List<Team> teamsForServer = teamsRepo.getTeamsForServer(serverId);
+        List<Pair<String, Double>> teamElos = rankView.getTeamRank(teamsForServer, rankings);
 
         Consumer<EmbedCreateSpec> weekly = spec -> {
             spec.setTitle(getLocaleString(serverId, "stats_change"));
-            //spec.setDescription("team rankings");
+            spec.setDescription(teamElos.stream().map(elem -> elem.getValue0() + ": " + elem.getValue1()).collect(Collectors.joining(" - ")));
             spec.setColor(Color.of(0x6CAEBE));
 
             IntStream.range(0, Math.min(collectNames.size(), 25))

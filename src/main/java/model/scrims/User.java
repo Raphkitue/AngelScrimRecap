@@ -10,6 +10,7 @@ public class User implements Jsonable
     private String userId;
     private String name;
     private String role;
+    private String battletag;
 
     public User(String userId, String name, String role)
     {
@@ -18,6 +19,15 @@ public class User implements Jsonable
         this.role = role;
     }
 
+    public String getBattletag()
+    {
+        return battletag;
+    }
+
+    public void setBattletag(String battletag)
+    {
+        this.battletag = battletag;
+    }
 
     public String getUserId()
     {
@@ -73,6 +83,7 @@ public class User implements Jsonable
         jsonObject.put("id", getUserId());
         jsonObject.put("name", getName());
         jsonObject.put("role", getRole());
+        jsonObject.put("battletag", battletag);
         return jsonObject;
     }
 
@@ -82,6 +93,7 @@ public class User implements Jsonable
         userId = (String) j.get("id");
         name = (String) j.get("name");
         role = (String) j.get("role");
+        battletag = (String) j.getOrDefault("battletag", "");
         return this;
     }
 }

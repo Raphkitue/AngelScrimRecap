@@ -7,6 +7,7 @@ import java.util.List;
 import java.util.stream.Collectors;
 import model.rankings.Player;
 import model.rankings.Rankings;
+import model.scrims.Team;
 import org.javatuples.Pair;
 
 public class MeanRoleOpenQView implements IRankView
@@ -54,6 +55,19 @@ public class MeanRoleOpenQView implements IRankView
                 + ", Damage " + eloProgressEmoji(e.getValue1().getDamageElo(), e.getValue0().getDamageElo())
                 + ", Support " + eloProgressEmoji(e.getValue1().getSupportElo(), e.getValue0().getSupportElo())
                 + ", Open Q " + eloProgressEmoji(e.getValue1().getOpenQElo(), e.getValue0().getOpenQElo()))
+            .collect(Collectors.toList());
+    }
+
+    @Override
+    public List<Pair<String, Double>> getTeamRank(List<Team> teams, Rankings rankings)
+    {
+        return teams.stream()
+            .map(team -> Pair.with(team.getName(),
+                team.getMembers().stream()
+                    .mapToLong(member -> rankings.getPlayerRanks(member.getBattletag()).map(this::getPlayerMean).orElse(0L))
+                    .filter(l -> l != 0)
+                    .average().orElse(0)
+            ))
             .collect(Collectors.toList());
     }
 }

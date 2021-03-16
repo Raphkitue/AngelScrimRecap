@@ -12,6 +12,7 @@ public enum Team implements Commands
     TEAM_REMOVE_USER("team remove", Argument.mandatory("@username"), Argument.optional("teamname")),
     TEAM_CLEAN("team clean", Argument.optional("teamname")),
     TEAM_SET_CAPTAIN("team set captain", Argument.mandatory("@username"), Argument.optional("teamname")),
+    TEAM_SET_BTAG("team set btag", Argument.mandatory("@username"), Argument.mandatory("battletag"), Argument.optional("teamname")),
     TEAM_CREATE("team create", Argument.mandatory("teamname")),
     TEAM_DELETE("team delete", Argument.mandatory("teamname")),
     TEAM_RESET("team reset", Argument.mandatory("teamname")),
