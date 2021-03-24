@@ -3,7 +3,9 @@ package repository.rankings.recap;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.text.DateFormat;
 import java.util.Collection;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -20,6 +22,7 @@ public class JSONRankings implements IRankingsRepository
 
     private static final Logger log = Loggers.getLogger(JSONRankings.class);
     Map<String, Rankings> ranks = new HashMap<>();
+    Map<String, Rankings> dailyRanks = new HashMap<>();
 
     String fileName;
 
@@ -36,6 +39,7 @@ public class JSONRankings implements IRankingsRepository
             JSONObject obj = (JSONObject) jsonParser.parse(reader);
 
             JSONArray teams = (JSONArray) obj.get("rankings");
+            JSONArray daily = (JSONArray) obj.get("dailyRanks");
 
             teams.forEach(object -> {
                 JSONObject jsonObject = (JSONObject) object;
@@ -43,8 +47,18 @@ public class JSONRankings implements IRankingsRepository
                 this.ranks.put(key, (Rankings) new Rankings().fromJson((JSONObject) jsonObject.get(key)));
             });
 
+            if (daily != null)
+            {
+                daily.forEach(object -> {
+                    JSONObject jsonObject = (JSONObject) object;
+                    String key = (String) jsonObject.keySet().stream().findFirst().get();
+                    this.dailyRanks.put(key, (Rankings) new Rankings().fromJson((JSONObject) jsonObject.get(key)));
+                });
+            }
 
-        } catch (Exception e)
+
+        }
+        catch (Exception e)
         {
             ranks = new HashMap<>();
         }
@@ -61,9 +75,16 @@ public class JSONRankings implements IRankingsRepository
                 return jsonObject1;
             }).collect(Collectors.toList()));
 
+            jsonObject.put("dailyRanks", dailyRanks.entrySet().stream().map(entry -> {
+                JSONObject jsonObject1 = new JSONObject();
+                jsonObject1.put(entry.getKey(), entry.getValue().toJson());
+                return jsonObject1;
+            }).collect(Collectors.toList()));
+
             file.write(jsonObject.toJSONString());
             file.flush();
-        } catch (IOException e)
+        }
+        catch (IOException e)
         {
             e.printStackTrace();
         }
@@ -73,6 +94,19 @@ public class JSONRankings implements IRankingsRepository
     public Rankings getRanking(String channelId)
     {
         return ranks.get(channelId);
+    }
+
+    @Override
+    public Rankings getDayRanking(String channelId, Date date)
+    {
+        return dailyRanks.get(channelId + DateFormat.getDateInstance().format(date));
+    }
+
+    @Override
+    public void updateDayRankings(Rankings rankings, Date date)
+    {
+        dailyRanks.put(rankings.getChannelId() + DateFormat.getDateInstance().format(date), rankings);
+        storeRankings();
     }
 
     @Override

@@ -50,8 +50,8 @@ public class MainRoleView implements IRankView
             .sorted(Comparator.comparingLong(Player::getMainRoleElo).reversed())
             .map(e -> Pair.with(e, formerRanks.getPlayerRanks(e.getBattletag()).orElse(new Player())))
             .map(e -> "Tank " + eloProgressEmoji(e.getValue1().getTankElo(), e.getValue0().getTankElo())
-                + ", Damage " + eloProgressEmoji(e.getValue1().getDamageElo(), e.getValue0().getDamageElo())
-                + ", Support " + eloProgressEmoji(e.getValue1().getSupportElo(), e.getValue0().getSupportElo()))
+                + ", " + "Damage " + eloProgressEmoji(e.getValue1().getDamageElo(), e.getValue0().getDamageElo())
+                + ", " + "Support " + eloProgressEmoji(e.getValue1().getSupportElo(), e.getValue0().getSupportElo()))
             .collect(Collectors.toList());
     }
 

@@ -217,9 +217,8 @@ public class AngelCompetition
                 return;
             }
 
-            //Request for new elos
-            Rankings rankingsForServer = rankingsRepo.getRanking(channel);
-            displayScores(serverId, rankingsForServer);
+
+            displayScores(serverId, channel);
         });
     }
 

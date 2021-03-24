@@ -11,7 +11,9 @@ import discord4j.core.object.entity.Message;
 import discord4j.core.object.entity.channel.MessageChannel;
 import discord4j.core.spec.EmbedCreateSpec;
 import discord4j.rest.util.Color;
+import java.text.DateFormat;
 import java.time.Duration;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -93,7 +95,7 @@ public class RankingsController
 
     public static String eloProgressEmoji(long formerElo, long newElo)
     {
-        return formerElo == newElo ? String.valueOf(newElo) : ((newElo > formerElo ? SCORE_UP : SCORE_DOWN) + newElo);
+        return formerElo == newElo ? String.format("%04d", newElo) : (String.format("%04d", formerElo) + (newElo > formerElo ? SCORE_UP : SCORE_DOWN) + String.format("%04d", newElo));
     }
 
     public static void displayChanges(String serverId, Rankings rankings, Rankings formerRankings)
@@ -106,6 +108,13 @@ public class RankingsController
             return;
         }
 
+        Rankings dayStartRankings = rankingsRepo.getDayRanking(rankings.getChannelId(), new Date());
+        if (dayStartRankings == null)
+        {
+            dayStartRankings = formerRankings;
+        }
+
+
         if (rankings.getLastMessageId() != null && !rankings.getLastMessageId().trim().isEmpty())
         {
             messageChannel.getMessageById(Snowflake.of(rankings.getLastMessageId()))
@@ -115,14 +124,14 @@ public class RankingsController
         }
 
         IRankView rankView = RankViewFactory.getRankView(rankings);
-        List<String> collectNames = rankView.getMainLines(rankings, formerRankings);
-        List<String> collectRanks = rankView.getSecondLines(rankings, formerRankings);
+        List<String> collectNames = rankView.getMainLines(rankings, dayStartRankings);
+        List<String> collectRanks = rankView.getSecondLines(rankings, dayStartRankings);
 
         List<Team> teamsForServer = teamsRepo.getTeamsForServer(serverId);
         List<Pair<String, Double>> teamElos = rankView.getTeamRank(teamsForServer, rankings);
 
         Consumer<EmbedCreateSpec> weekly = spec -> {
-            spec.setTitle(getLocaleString(serverId, "stats_change"));
+            spec.setTitle(getLocaleString(serverId, "stats_change", DateFormat.getDateInstance().format(new Date())));
             spec.setDescription(teamElos.stream().map(elem -> elem.getValue0() + ": " + elem.getValue1()).collect(Collectors.joining(" - ")));
             spec.setColor(Color.of(0x6CAEBE));
 
@@ -134,17 +143,18 @@ public class RankingsController
         Message message = sendEmbed(messageChannel, weekly);
         rankings.setLastMessageId(message.getId().asString());
         rankingsRepo.updateRankings(rankings);
+        rankingsRepo.updateDayRankings(dayStartRankings, new Date());
 
     }
 
 
-    public static void displayScores(String serverId, Rankings rankingsForServer)
+    public static void displayScores(String serverId, String channel)
     {
+        Rankings rankingsForServer = rankingsRepo.getRanking(channel);
         Rankings formerRankings = rankingsForServer.deepClone();
 
         updateRankings(rankingsForServer);
 
-        // Check who changed
         displayChanges(serverId, rankingsForServer, formerRankings);
 
         rankingsRepo.updateRankings(rankingsForServer);
