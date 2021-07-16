@@ -1,13 +1,25 @@
 package model.commands;
 
+import discord4j.rest.util.ApplicationCommandOptionType;
+
 import java.util.Objects;
 
 public class Argument
 {
     public enum Necessity
     {
-        OPTIONAL,
-        MANDATORY;
+        OPTIONAL(false),
+        MANDATORY(true);
+
+        private boolean required;
+
+        Necessity(boolean required) {
+            this.required = required;
+        }
+
+        public boolean isRequired() {
+            return required;
+        }
     }
 
     private String name;
@@ -37,6 +49,21 @@ public class Argument
     public static Argument any(String name)
     {
         return new Argument(name);
+    }
+
+    public int getArgumentType()
+    {
+        switch (name)
+        {
+            case "#channel":
+            case "channel":
+                return ApplicationCommandOptionType.CHANNEL.getValue();
+            case "@username":
+            case "username":
+                return ApplicationCommandOptionType.MENTIONABLE.getValue();
+            default:
+                return ApplicationCommandOptionType.STRING.getValue();
+        }
     }
 
     public String getName()

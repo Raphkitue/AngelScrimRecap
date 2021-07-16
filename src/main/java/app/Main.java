@@ -16,9 +16,12 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
+
+import discord4j.rest.interaction.Interactions;
 import reactor.core.publisher.Mono;
 import reactor.util.Logger;
 import reactor.util.Loggers;
+import repository.rankings.recap.IRankingsRepository;
 import support.AngelBot;
 import support.AngelCompetition;
 import support.AngelRecap;
@@ -30,12 +33,16 @@ public class Main
 
     private static final Logger log = Loggers.getLogger(Main.class);
 
+    public static GatewayDiscordClient client;
+
     public static void main(String[] args) throws IOException
     {
 
-        String token = System.getenv("DISCORD_TOKEN");
+        //String token = System.getenv("DISCORD_TOKEN");
+        String token = "Nzg3MzQ4MjgxMTQyNTQyMzY2.X9TpOg.1PuKldq-LKOJjZ38USgoR54wbwo";
 
-        GatewayDiscordClient client = DiscordClient.create(token).login().block();
+        client = DiscordClient.create(token).login().block();
+
 
         List<EventHandler> eventHandlers = new ArrayList<>();
         List<EventHandler> teamCommands = new ArrayList<>();
@@ -44,6 +51,7 @@ public class Main
 
         //eventHandlers.add(AngelBot::logMessages);
         eventHandlers.add(AngelBot::onSetupMessage);
+        eventHandlers.add(AngelCompetition::onDebug);
         eventHandlers.add(AngelBot::onSetupDelay);
         eventHandlers.add(AngelBot::onSetupLang);
         eventHandlers.add(AngelBot::onHelp);
@@ -75,6 +83,7 @@ public class Main
         channelCommands.add(AngelTeam::onTeamAddRole);
 
 
+
         //Ajouter elo moyen teams
         //Create a master leaderboard with merged leaderboards
 
@@ -86,6 +95,8 @@ public class Main
 
 
         assert client != null;
+
+        //AngelCompetition.createCommands(client.getRestClient());
 
         RankingsController.initialize(client);
 

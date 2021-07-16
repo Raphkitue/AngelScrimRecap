@@ -50,6 +50,7 @@ public class RankingsController
     {
         RankingsController.client = client;
         rankingsRepo.getRankings().forEach(r -> createTask(r.getChannelId()));
+        rankingsRepo.updateServs(client);
     }
 
     public static void createTask(String channelId)
