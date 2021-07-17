@@ -15,15 +15,18 @@ import discord4j.core.event.domain.message.MessageCreateEvent;
 import discord4j.core.object.entity.channel.GuildMessageChannel;
 import discord4j.core.object.reaction.ReactionEmoji;
 
+import java.time.Duration;
 import java.util.*;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
+import discord4j.discordjson.json.ApplicationCommandData;
 import discord4j.discordjson.json.ApplicationCommandOptionChoiceData;
 import discord4j.discordjson.json.ApplicationCommandOptionData;
 import discord4j.discordjson.json.ApplicationCommandRequest;
 import discord4j.rest.RestClient;
 import discord4j.rest.interaction.Interactions;
+import discord4j.rest.service.ApplicationService;
 import discord4j.rest.util.ApplicationCommandOptionType;
 import model.commands.Argument;
 import model.commands.Commander;
@@ -33,6 +36,7 @@ import model.rankings.Rankings;
 import model.rankings.Roles;
 import net.owapi.IOWAPI;
 import reactor.core.publisher.Mono;
+import reactor.netty.http.server.HttpServer;
 import reactor.util.Logger;
 import reactor.util.Loggers;
 import repository.rankings.recap.IRankingsRepository;
@@ -148,46 +152,38 @@ public class AngelCompetition {
 
     public static void createCommands(RestClient client, Snowflake guildId) {
 
-        Interactions.create()
-            .onGuildCommand(
-                getCommandRequest(RANKINGS_START, c -> ApplicationArguments.getOptions(RANKINGS_START)),
-                guildId,
-                NewLeaderboardInteration::new
-            )
-            .onGuildCommand(
+        //List<ApplicationCommandData> globalCommands = client.getApplicationService().getGuildApplicationCommands(Main.appId, guildId.asLong())
+        //    .collectList().block();
+        //globalCommands.stream().peek(e -> log.info("Oui" + e.id())).forEach(c -> client.getApplicationService().deleteGuildApplicationCommand(Main.appId, guildId.asLong(), Long.parseLong(c.id())).block());
+
+        ApplicationService appService = client.getApplicationService();
+        List<Mono<ApplicationCommandData>> appCommands = List.of(
+            appService.createGuildApplicationCommand(Main.appId, guildId.asLong(),
+                getCommandRequest(RANKINGS_START, c -> ApplicationArguments.getOptions(RANKINGS_START))),
+            appService.createGuildApplicationCommand(Main.appId, guildId.asLong(),
                 getCommandRequest(RANKINGS_DELETE,
                     c -> ApplicationArguments.getOptions(RANKINGS_DELETE,
                         Collections.singletonMap(RANKINGS_DELETE.getArgument("channel"), guildId.asString())
-                    )),
-                guildId,
-                NewLeaderboardInteration::new
-            )
-            .onGuildCommand(
+                    ))),
+            appService.createGuildApplicationCommand(Main.appId, guildId.asLong(),
                 getCommandRequest(RANKINGS_UPDATE, c -> ApplicationArguments.getOptions(RANKINGS_UPDATE,
                     Collections.singletonMap(RANKINGS_UPDATE.getArgument("channel"), guildId.asString())
-                )),
-                guildId,
-                NewLeaderboardInteration::new
-            )
-            .onGuildCommand(
+                ))),
+            appService.createGuildApplicationCommand(Main.appId, guildId.asLong(),
                 getCommandRequest(RANKINGS_ENROLL, c -> {
                     HashMap<Argument, Object> arguments = new HashMap<>();
                     arguments.put(RANKINGS_ENROLL.getArgument("channel"), guildId.asString());
                     arguments.put(RANKINGS_ENROLL.getArgument("mainrole"), Arrays.stream(Roles.values()).map(Roles::getPair).collect(Collectors.toList()));
                     return ApplicationArguments.getOptions(RANKINGS_ENROLL, arguments);
-                }),
-                guildId,
-                NewLeaderboardInteration::new
-            )
-            .onGuildCommand(
+                })),
+            appService.createGuildApplicationCommand(Main.appId, guildId.asLong(),
                 getCommandRequest(RANKINGS_DELETE, c -> ApplicationArguments.getOptions(RANKINGS_DELETE,
                     Collections.singletonMap(RANKINGS_DELETE.getArgument("channel"), guildId.asString())
-                )),
-                guildId,
-                NewLeaderboardInteration::new
-            )
-            .createCommands(client)
-            .block();
+                )))
+
+        );
+
+        appCommands.forEach(Mono::block);
     }
 
     public static Mono<Void> onRankingsDelete(MessageCreateEvent event) {

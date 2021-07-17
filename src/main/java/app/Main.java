@@ -7,6 +7,7 @@ import controller.RankingsController;
 import discord4j.common.util.Snowflake;
 import discord4j.core.DiscordClient;
 import discord4j.core.GatewayDiscordClient;
+import discord4j.core.event.domain.interaction.SlashCommandEvent;
 import discord4j.core.event.domain.message.MessageCreateEvent;
 import java.io.IOException;
 import java.net.InetSocketAddress;
@@ -18,16 +19,14 @@ import java.util.concurrent.ThreadPoolExecutor;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
+import discord4j.core.object.entity.ApplicationInfo;
+import discord4j.discordjson.json.ApplicationCommandData;
 import discord4j.rest.interaction.Interactions;
 import reactor.core.publisher.Mono;
 import reactor.util.Logger;
 import reactor.util.Loggers;
 import repository.rankings.recap.IRankingsRepository;
-import support.AngelBot;
-import support.AngelCompetition;
-import support.AngelRecap;
-import support.AngelTeam;
-import support.EventHandler;
+import support.*;
 
 public class Main
 {
@@ -35,6 +34,7 @@ public class Main
     private static final Logger log = Loggers.getLogger(Main.class);
 
     public static GatewayDiscordClient client;
+    public static long appId;
 
     public static void main(String[] args) throws IOException
     {
@@ -96,8 +96,13 @@ public class Main
 
 
         assert client != null;
-
         //AngelCompetition.createCommands(client.getRestClient());
+        Main.appId = client.getApplicationInfo().map(ApplicationInfo::getId).block().asLong();
+
+        client.getRestClient().getApplicationService().getGlobalApplicationCommands(appId)
+            .map(c -> client.getRestClient().getApplicationService().deleteGlobalApplicationCommand(appId, Long.parseLong(c.id())))
+            .then()
+            .block();
 
         RankingsController.initialize(client);
 
@@ -146,6 +151,15 @@ public class Main
         return baseCommandHandler(client, eventHandlers, MessageFilters::teamReadyFilter, MessageFilters::captainFilter);
     }
 
+    public static Mono<Void> guildSlashCommandHandler(GatewayDiscordClient client, List<SlashEventHandler> eventHandlers)
+    {
+        return client.on(SlashCommandEvent.class,
+            event -> id -> Mono.when(eventHandlers.stream()
+            .map(handler -> handler.onMessageCreate(event))
+                .collect(Collectors.toList())
+            ))
+            .then();
+    }
 
     @SafeVarargs
     public static Mono<Void> baseCommandHandler(GatewayDiscordClient client, List<EventHandler> eventHandlers, Predicate<MessageCreateEvent> ...predicates)

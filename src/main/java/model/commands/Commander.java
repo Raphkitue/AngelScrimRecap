@@ -78,7 +78,7 @@ public class Commander
 
     public static Optional<String> getArgument(Commands command, String message, String argname)
     {
-        return Optional.ofNullable(parseArgument(command, message, Argument.any(argname)));
+        return Optional.ofNullable(parseArgument(command, message, Argument.any(argname, "", Argument.ArgumentType.STRING)));
     }
 
     public static String getText(Commands command, String message)
@@ -103,7 +103,7 @@ public class Commander
 
     public static String getMandatoryArgument(Commands command, Message message, String argname) throws MissingArgumentException
     {
-        String s = parseArgument(command, message.getContent(), Argument.any(argname));
+        String s = parseArgument(command, message.getContent(), Argument.any(argname, "", Argument.ArgumentType.STRING));
         if (s == null || s.isEmpty()){
             throw new MissingArgumentException("missing arg" + argname, argname, message.getChannelId().asString(), message.getGuildId().orElse(Snowflake.of(0)).asString());
         }

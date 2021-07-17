@@ -9,21 +9,21 @@ public enum Rankings implements Commands
 {
     DEBUG("debug", "marc"),
     RANKINGS_START("rankings create", "newlead",
-        Argument.mandatory("channel", "", Argument.ArgumentType.CHANNEL)),
+        Argument.mandatory("channel", "Placeholder", Argument.ArgumentType.CHANNEL)),
     RANKINGS_ENROLL("rankings enroll", "enroll",
-        Argument.mandatory("channel", "", Argument.ArgumentType.EXISTING_RANKING),
-        Argument.mandatory("battletag", "", Argument.ArgumentType.STRING),
-        Argument.mandatory("mainrole", "", Argument.ArgumentType.SPECIFIC)),
+        Argument.mandatory("channel", "Placeholder", Argument.ArgumentType.EXISTING_RANKING),
+        Argument.mandatory("battletag", "Placeholder", Argument.ArgumentType.STRING),
+        Argument.mandatory("mainrole", "Placeholder", Argument.ArgumentType.SPECIFIC)),
     RANKINGS_DELETE("rankings delete", "delete",
-        Argument.mandatory("channel", "", Argument.ArgumentType.EXISTING_RANKING ),
-        Argument.mandatory("battletag", "", Argument.ArgumentType.STRING)),
+        Argument.mandatory("channel", "Placeholder", Argument.ArgumentType.EXISTING_RANKING ),
+        Argument.mandatory("battletag", "Placeholder", Argument.ArgumentType.STRING)),
     RANKINGS_REMOVE("rankings remove", "removelead",
-        Argument.mandatory("channel", "", Argument.ArgumentType.EXISTING_RANKING)),
+        Argument.mandatory("channel", "Placeholder", Argument.ArgumentType.EXISTING_RANKING)),
     RANKINGS_CONF("rankings conf", "configure",
-        Argument.mandatory("channel", "", Argument.ArgumentType.EXISTING_RANKING),
-        Argument.mandatory("confmode", "", Argument.ArgumentType.SPECIFIC)),
+        Argument.mandatory("channel", "Placeholder", Argument.ArgumentType.EXISTING_RANKING),
+        Argument.mandatory("confmode", "Placeholder", Argument.ArgumentType.SPECIFIC)),
     RANKINGS_UPDATE("rankings update", "updatelead",
-        Argument.mandatory("channel", "", Argument.ArgumentType.EXISTING_RANKING));
+        Argument.mandatory("channel", "Placeholder", Argument.ArgumentType.EXISTING_RANKING));
 
 
     private final String command;
