@@ -1,4 +1,4 @@
-package support.interactions;
+package support.interactions.handlers;
 
 import discord4j.discordjson.json.InteractionResponseData;
 import discord4j.rest.interaction.GuildInteraction;

@@ -8,12 +8,22 @@ import model.commands.Commands;
 public enum Rankings implements Commands
 {
     DEBUG("debug", "marc"),
-    RANKINGS_START("rankings create", "newlead", Argument.mandatory("channel")),
-    RANKINGS_ENROLL("rankings enroll", "enroll", Argument.mandatory("#channel"), Argument.mandatory("battletag"), Argument.mandatory("mainrole")),
-    RANKINGS_DELETE("rankings delete", "delete", Argument.mandatory("#channel"), Argument.mandatory("battletag")),
-    RANKINGS_REMOVE("rankings remove", "removelead", Argument.mandatory("channel")),
-    RANKINGS_CONF("rankings conf", "configure", Argument.mandatory("#channel"), Argument.mandatory("confmode")),
-    RANKINGS_UPDATE("rankings update", "updateLeaderboard", Argument.mandatory("#channel"));
+    RANKINGS_START("rankings create", "newlead",
+        Argument.mandatory("channel", "", Argument.ArgumentType.CHANNEL)),
+    RANKINGS_ENROLL("rankings enroll", "enroll",
+        Argument.mandatory("channel", "", Argument.ArgumentType.EXISTING_RANKING),
+        Argument.mandatory("battletag", "", Argument.ArgumentType.STRING),
+        Argument.mandatory("mainrole", "", Argument.ArgumentType.SPECIFIC)),
+    RANKINGS_DELETE("rankings delete", "delete",
+        Argument.mandatory("channel", "", Argument.ArgumentType.EXISTING_RANKING ),
+        Argument.mandatory("battletag", "", Argument.ArgumentType.STRING)),
+    RANKINGS_REMOVE("rankings remove", "removelead",
+        Argument.mandatory("channel", "", Argument.ArgumentType.EXISTING_RANKING)),
+    RANKINGS_CONF("rankings conf", "configure",
+        Argument.mandatory("channel", "", Argument.ArgumentType.EXISTING_RANKING),
+        Argument.mandatory("confmode", "", Argument.ArgumentType.SPECIFIC)),
+    RANKINGS_UPDATE("rankings update", "updatelead",
+        Argument.mandatory("channel", "", Argument.ArgumentType.EXISTING_RANKING));
 
 
     private final String command;
@@ -46,5 +56,9 @@ public enum Rankings implements Commands
     public List<Argument> getArguments()
     {
         return arguments;
+    }
+    public Argument getArgument(String name)
+    {
+        return arguments.stream().filter(e -> e.getName().equals(name)).findFirst().orElse(null);
     }
 }

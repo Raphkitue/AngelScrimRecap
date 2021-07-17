@@ -6,7 +6,7 @@ plugins {
 
 group 'com.discord4j'
 version '3.1.2-SNAPSHOT'
-sourceCompatibility = 1.8
+sourceCompatibility = 14
 
 repositories {
     maven { url 'https://oss.sonatype.org/content/repositories/snapshots' }

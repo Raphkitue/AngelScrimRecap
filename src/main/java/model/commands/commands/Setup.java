@@ -7,10 +7,14 @@ import model.commands.Commands;
 
 public enum Setup implements Commands
 {
-    SETUP_LANGUAGE("setup lang", Argument.mandatory("lang")),
-    SETUP_DELAY("setup vote", Argument.mandatory("delay")),
-    SETUP("setup bot", Argument.optional("#channel")),
-    HELP("help", Argument.optional("category"));
+    SETUP_LANGUAGE("setup lang",
+        Argument.mandatory("lang", "", Argument.ArgumentType.SPECIFIC)),
+    SETUP_DELAY("setup vote",
+        Argument.mandatory("delay", "", Argument.ArgumentType.STRING)),
+    SETUP("setup bot",
+        Argument.optional("channel", "", Argument.ArgumentType.CHANNEL)),
+    HELP("help",
+        Argument.optional("category", "", Argument.ArgumentType.SPECIFIC));
 
     private final String command;
     private final List<Argument> arguments;

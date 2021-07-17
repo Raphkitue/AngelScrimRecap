@@ -15,8 +15,8 @@ import discord4j.core.event.domain.message.MessageCreateEvent;
 import discord4j.core.object.entity.channel.GuildMessageChannel;
 import discord4j.core.object.reaction.ReactionEmoji;
 
-import java.util.Arrays;
-import java.util.List;
+import java.util.*;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import discord4j.discordjson.json.ApplicationCommandOptionChoiceData;
@@ -36,7 +36,8 @@ import reactor.core.publisher.Mono;
 import reactor.util.Logger;
 import reactor.util.Loggers;
 import repository.rankings.recap.IRankingsRepository;
-import support.interactions.NewLeaderboardInteration;
+import support.interactions.arguments.ApplicationArguments;
+import support.interactions.handlers.NewLeaderboardInteration;
 
 public class AngelCompetition {
 
@@ -99,7 +100,7 @@ public class AngelCompetition {
     public static Mono<Void> onRankingsEnroll(MessageCreateEvent event) {
         return commandMessage(event, RANKINGS_ENROLL, (command, e) -> {
             String serverId = e.getGuildId().get().asString();
-            String channel = Commander.getMandatoryArgument(command, e.getMessage(), "#channel");
+            String channel = Commander.getMandatoryArgument(command, e.getMessage(), "channel");
             String battletag = Commander.getMandatoryArgument(command, e.getMessage(), "battletag");
             String mainRole = Commander.getMandatoryArgument(command, e.getMessage(), "mainrole");
 
@@ -130,16 +131,6 @@ public class AngelCompetition {
         });
     }
 
-    private static List<ApplicationCommandOptionData> createSimpleOptions(Commands command) {
-        return command.getArguments().stream()
-            .map(arg -> ApplicationCommandOptionData.builder()
-                .type(arg.getArgumentType())
-                .name(arg.getName())
-                .description("Placeholder")
-                .required(arg.getNecessity().isRequired())
-                .build())
-            .collect(Collectors.toList());
-    }
 
     public static Mono<Void> onDebug(MessageCreateEvent event) {
         return commandMessage(event, DEBUG, (command, e) -> {
@@ -147,40 +138,51 @@ public class AngelCompetition {
         });
     }
 
-    public static ApplicationCommandRequest onRankingsRemoveInteraction(String guildId) {
-        Argument arg = RANKINGS_REMOVE.getArguments().stream().findFirst().get();
+    private static ApplicationCommandRequest getCommandRequest(model.commands.commands.Rankings command, Function<Commands, List<ApplicationCommandOptionData>> optionSupplier) {
         return ApplicationCommandRequest.builder()
-            .name(RANKINGS_REMOVE.getSlashCommand())
-            .description(getDirectLocaleString("en", RANKINGS_REMOVE.getName()))
-            .addOption(ApplicationCommandOptionData.builder()
-                .type(ApplicationCommandOptionType.STRING.getValue())
-                .name(arg.getName())
-                .description("Available leaderboard to remove")
-                .choices(rankingsRepo.getRankingsForServer(guildId).stream()
-                    .map(chann -> ApplicationCommandOptionChoiceData.builder()
-                        .value(chann.getValue0())
-                        .name(chann.getValue1())
-                        .build())
-                    .collect(Collectors.toList())
-                )
-                .required(arg.getNecessity().isRequired())
-                .build())
+            .name(command.getSlashCommand())
+            .description(getDirectLocaleString("en", command.getName()))
+            .options(optionSupplier.apply(command))
             .build();
     }
 
     public static void createCommands(RestClient client, Snowflake guildId) {
+
         Interactions.create()
             .onGuildCommand(
-                ApplicationCommandRequest.builder()
-                    .name(RANKINGS_START.getSlashCommand())
-                    .description(getDirectLocaleString("en", RANKINGS_START.getName()))
-                    .options(createSimpleOptions(RANKINGS_START))
-                    .build(),
+                getCommandRequest(RANKINGS_START, c -> ApplicationArguments.getOptions(RANKINGS_START)),
                 guildId,
                 NewLeaderboardInteration::new
             )
             .onGuildCommand(
-                onRankingsRemoveInteraction(guildId.asString()),
+                getCommandRequest(RANKINGS_DELETE,
+                    c -> ApplicationArguments.getOptions(RANKINGS_DELETE,
+                        Collections.singletonMap(RANKINGS_DELETE.getArgument("channel"), guildId.asString())
+                    )),
+                guildId,
+                NewLeaderboardInteration::new
+            )
+            .onGuildCommand(
+                getCommandRequest(RANKINGS_UPDATE, c -> ApplicationArguments.getOptions(RANKINGS_UPDATE,
+                    Collections.singletonMap(RANKINGS_UPDATE.getArgument("channel"), guildId.asString())
+                )),
+                guildId,
+                NewLeaderboardInteration::new
+            )
+            .onGuildCommand(
+                getCommandRequest(RANKINGS_ENROLL, c -> {
+                    HashMap<Argument, Object> arguments = new HashMap<>();
+                    arguments.put(RANKINGS_ENROLL.getArgument("channel"), guildId.asString());
+                    arguments.put(RANKINGS_ENROLL.getArgument("mainrole"), Arrays.stream(Roles.values()).map(Roles::getPair).collect(Collectors.toList()));
+                    return ApplicationArguments.getOptions(RANKINGS_ENROLL, arguments);
+                }),
+                guildId,
+                NewLeaderboardInteration::new
+            )
+            .onGuildCommand(
+                getCommandRequest(RANKINGS_DELETE, c -> ApplicationArguments.getOptions(RANKINGS_DELETE,
+                    Collections.singletonMap(RANKINGS_DELETE.getArgument("channel"), guildId.asString())
+                )),
                 guildId,
                 NewLeaderboardInteration::new
             )
@@ -214,7 +216,7 @@ public class AngelCompetition {
     public static Mono<Void> onRankingsRemove(MessageCreateEvent event) {
         return commandMessage(event, RANKINGS_REMOVE, (command, e) -> {
             String serverId = e.getGuildId().get().asString();
-            String channel = Commander.getMandatoryArgument(command, e.getMessage(), "#channel");
+            String channel = Commander.getMandatoryArgument(command, e.getMessage(), "channel");
 
             //Start task for weekly summary + task to check for changes
             if (!rankingsRepo.rankingsExist(channel)) {
@@ -231,7 +233,7 @@ public class AngelCompetition {
     public static Mono<Void> onRankingsConf(MessageCreateEvent event) {
         return commandMessage(event, RANKINGS_CONF, (command, e) -> {
             String serverId = e.getGuildId().get().asString();
-            String channel = Commander.getMandatoryArgument(command, e.getMessage(), "#channel");
+            String channel = Commander.getMandatoryArgument(command, e.getMessage(), "channel");
             String confmode = Commander.getMandatoryArgument(command, e.getMessage(), "confmode");
 
             if (!rankingsRepo.rankingsExist(channel)) {

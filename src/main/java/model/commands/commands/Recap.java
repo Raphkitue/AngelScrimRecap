@@ -7,10 +7,17 @@ import model.commands.Commands;
 
 public enum Recap implements Commands
 {
-    RECAP_START("recap start", Argument.optional("teamname")),
-    RECAP_ADD_LINE("recap add", Argument.mandatory("@username"), Argument.mandatory("teamname")),
-    RECAP_ADD_REPLAY("recap replay", Argument.mandatory("replaycode"), Argument.mandatory("mapname"), Argument.optional("teamname")),
-    RECAP_FINISH("recap finish", Argument.optional("teamname"));
+    RECAP_START("recap start",
+        Argument.optional("teamname", "", Argument.ArgumentType.STRING)),
+    RECAP_ADD_LINE("recap add",
+        Argument.mandatory("username", "", Argument.ArgumentType.USERNAME),
+        Argument.mandatory("teamname", "", Argument.ArgumentType.STRING)),
+    RECAP_ADD_REPLAY("recap replay",
+        Argument.mandatory("replaycode", "", Argument.ArgumentType.STRING),
+        Argument.mandatory("mapname", "", Argument.ArgumentType.SPECIFIC),
+        Argument.optional("teamname", "", Argument.ArgumentType.STRING)),
+    RECAP_FINISH("recap finish",
+        Argument.optional("teamname", "", Argument.ArgumentType.STRING));
 
 
     private final String command;

@@ -143,7 +143,7 @@ public class AngelRecap
                 return;
             }
 
-            String userid = Commander.getArgument(command, e.getMessage().getContent(), "@username")
+            String userid = Commander.getArgument(command, e.getMessage().getContent(), "username")
                 .filter(s -> teamsRepository.getTeamById(recap.getTeamId())
                     .getMembers().stream()
                     .filter(user -> user.getUserId().equals(e.getMessage().getAuthor().get().getId().asString()))
