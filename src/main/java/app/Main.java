@@ -86,6 +86,9 @@ public class Main
 
         slashEvents.add(AngelCompetition::onSlashStartRankings);
         slashEvents.add(AngelCompetition::onSlashRankingsEnroll);
+        slashEvents.add(AngelCompetition::onSlashRankingsDelete);
+        slashEvents.add(AngelCompetition::onSlashRankingsRemove);
+        slashEvents.add(AngelCompetition::onSlashRankingsUpdate);
         //Ajouter elo moyen teams
         //Create a master leaderboard with merged leaderboards
 

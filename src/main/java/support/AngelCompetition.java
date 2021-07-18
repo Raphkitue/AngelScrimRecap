@@ -156,7 +156,6 @@ public class AngelCompetition {
             String battletag = getSlashArgument(e, "battletag");
             String mainRole = getSlashArgument(e, "mainrole");
 
-
             if (Roles.from(mainRole) == null) {
                 event.reply(getLocaleString(serverId,  "invalid_role")).block();
                 return;
@@ -167,7 +166,8 @@ public class AngelCompetition {
                 return;
             }
 
-            event.replyEphemeral("Adding player...").block();
+            //event.replyEphemeral("Adding player...").block();
+            event.acknowledgeEphemeral().block();
 
             if (owApi.getPlayerElos(battletag) == null) {
                 event.getInteractionResponse().createFollowupMessage(getLocaleString(serverId,  "ranking_system_incorrect_profile")).block();
@@ -181,11 +181,9 @@ public class AngelCompetition {
 
             rankingsRepo.updateRankings(rankings);
 
-
-
             createCommands(e.getClient().getRestClient(), event.getInteraction().getGuildId().get());
 
-            event.reply(getLocaleString(serverId,  "ranking_system_player_enrolled")).block();
+            event.getInteractionResponse().createFollowupMessage(getLocaleString(serverId,  "ranking_system_player_enrolled", battletag)).block();
         });
     }
 
@@ -265,13 +263,38 @@ public class AngelCompetition {
                     return ApplicationArguments.getOptions(RANKINGS_ENROLL, arguments);
                 })),
             appService.createGuildApplicationCommand(Main.appId, guildId.asLong(),
-                getCommandRequest(RANKINGS_DELETE, c -> ApplicationArguments.getOptions(RANKINGS_DELETE,
-                    Collections.singletonMap(RANKINGS_DELETE.getArgument("channel"), guildId.asString())
+                getCommandRequest(RANKINGS_REMOVE, c -> ApplicationArguments.getOptions(RANKINGS_REMOVE,
+                    Collections.singletonMap(RANKINGS_REMOVE.getArgument("channel"), guildId.asString())
                 )))
 
         );
 
         appCommands.forEach(Mono::block);
+    }
+
+    public static Mono<Void> onSlashRankingsDelete(SlashCommandEvent event) {
+        return slashCommandMessage(event, RANKINGS_DELETE, (command, e) -> {
+            String serverId = event.getInteraction().getGuildId().map(Snowflake::asString).get();
+            String channel = getSlashArgument(e, "channel");
+            String battletag = getSlashArgument(e, "battletag");
+
+            if (!rankingsRepo.rankingsExist(channel)) {
+                event.replyEphemeral(getLocaleString(serverId,  "ranking_system_not_created")).block();
+                return;
+            }
+
+            event.acknowledgeEphemeral().block();
+
+            Rankings rankings = rankingsRepo.getRanking(channel);
+
+            rankings.removeRanking(battletag);
+
+            rankingsRepo.updateRankings(rankings);
+
+            createCommands(e.getClient().getRestClient(), event.getInteraction().getGuildId().get());
+
+            event.getInteractionResponse().createFollowupMessage(getLocaleString(serverId,  "ranking_system_player_removed", battletag)).block();
+        });
     }
 
     public static Mono<Void> onRankingsDelete(MessageCreateEvent event) {
@@ -294,6 +317,26 @@ public class AngelCompetition {
 
             sendMessage(event.getMessage().getChannel(), serverId, "ranking_system_player_removed", battletag);
 
+        });
+    }
+
+    public static Mono<Void> onSlashRankingsRemove(SlashCommandEvent event) {
+        return slashCommandMessage(event, RANKINGS_REMOVE, (command, e) -> {
+            String serverId = event.getInteraction().getGuildId().map(Snowflake::asString).get();
+            String channel = getSlashArgument(e, "channel");
+
+            if (!rankingsRepo.rankingsExist(channel)) {
+                event.replyEphemeral(getLocaleString(serverId,  "ranking_system_not_created")).block();
+                return;
+            }
+
+            event.acknowledgeEphemeral().block();
+
+            rankingsRepo.deleteRankings(channel);
+
+            createCommands(e.getClient().getRestClient(), event.getInteraction().getGuildId().get());
+
+            event.getInteractionResponse().createFollowupMessage("Ranking system deleted").block();
         });
     }
 
@@ -343,6 +386,25 @@ public class AngelCompetition {
             e.getMessage().addReaction(ReactionEmoji.unicode("✅")).block();
         });
     }
+
+    public static Mono<Void> onSlashRankingsUpdate(SlashCommandEvent event) {
+        return slashCommandMessage(event, RANKINGS_UPDATE, (command, e) -> {
+            String serverId = event.getInteraction().getGuildId().map(Snowflake::asString).get();
+            String channel = getSlashArgument(e, "channel");
+
+            if (!rankingsRepo.rankingsExist(channel)) {
+                event.replyEphemeral(getLocaleString(serverId,  "ranking_system_not_created")).block();
+                return;
+            }
+
+            event.acknowledgeEphemeral().block();
+
+            displayScores(serverId, channel);
+
+            event.getInteractionResponse().createFollowupMessage("Ranking system deleted").block();
+        });
+    }
+
 
     public static Mono<Void> onRankingsUpdate(MessageCreateEvent event) {
         return commandMessage(event, RANKINGS_UPDATE, (command, e) -> {

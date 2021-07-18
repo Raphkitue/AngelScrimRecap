@@ -60,9 +60,9 @@ public class Commander
             {
                 if (args.size() > i)
                 {
-                    if (arg.getName().contains("@"))
+                    if (arg.getName().contains("@") || arg.getName().equals("username"))
                     { return parseMention(args.get(i)); }
-                    if (arg.getName().contains("#"))
+                    if (arg.getName().contains("#") || arg.getName().equals("channel"))
                     { return parseChannel(args.get(i)); }
                     if (arg.getName().equals("mapname")){
                         return args.stream().skip(i).collect(Collectors.joining(" "));
