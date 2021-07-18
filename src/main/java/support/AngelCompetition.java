@@ -2,8 +2,7 @@ package support;
 
 import static Util.LocaleUtils.getDirectLocaleString;
 import static Util.LocaleUtils.getLocaleString;
-import static Util.MessageUtils.commandMessage;
-import static Util.MessageUtils.sendMessage;
+import static Util.MessageUtils.*;
 import static controller.RankingsController.createTask;
 import static controller.RankingsController.displayScores;
 import static model.commands.commands.Rankings.*;
@@ -11,7 +10,12 @@ import static model.commands.commands.Rankings.*;
 import app.DependenciesContainer;
 import app.Main;
 import discord4j.common.util.Snowflake;
+import discord4j.core.event.domain.interaction.SlashCommandEvent;
 import discord4j.core.event.domain.message.MessageCreateEvent;
+import discord4j.core.object.command.ApplicationCommandInteractionOption;
+import discord4j.core.object.command.ApplicationCommandInteractionOptionValue;
+import discord4j.core.object.command.Interaction;
+import discord4j.core.object.entity.channel.Channel;
 import discord4j.core.object.entity.channel.GuildMessageChannel;
 import discord4j.core.object.reaction.ReactionEmoji;
 
@@ -68,11 +72,47 @@ public class AngelCompetition {
     private static final IRankingsRepository rankingsRepo = DependenciesContainer.getInstance().getRankingsRepo();
 
 
+    public static Mono<Void> onSlashStartRankings(SlashCommandEvent event) {
+        return slashCommandMessage(event, RANKINGS_START, (command, e) -> {
+            String serverId = event.getInteraction().getGuildId().map(Snowflake::asString).get();
+            GuildMessageChannel discordChannel = event.getOption("channel")
+                .flatMap(ApplicationCommandInteractionOption::getValue)
+                .map(ApplicationCommandInteractionOptionValue::asChannel)
+                .orElse(Mono.empty())
+                .filter(channelMono -> channelMono instanceof GuildMessageChannel)
+                .map(c -> (GuildMessageChannel) c)
+                .block();
+
+            if (discordChannel == null) {
+                event.reply("Channel should be text").block();
+                return;
+            }
+            event.acknowledge().block();
+
+            String channel = discordChannel.getId().asString();
+            String channelName = discordChannel.getName();
+
+            if (rankingsRepo.rankingsExist(channel)) {
+                event.getInteractionResponse().createFollowupMessage(getLocaleString(serverId,  "ranking_system_already_created")).block();
+                return;
+            }
+
+            Rankings rankings = new Rankings(channel, "", RankingsMode.MAIN_ROLE.value);
+            rankingsRepo.addRankings(rankings, serverId, channelName);
+
+            createTask(channel);
+
+            event.getInteractionResponse().createFollowupMessage(getLocaleString(serverId,  "ranking_system_enabled")).block();
+            createCommands(e.getClient().getRestClient(), event.getInteraction().getGuildId().get());
+
+        });
+    }
+
     public static Mono<Void> onStartRankings(MessageCreateEvent event) {
         return commandMessage(event, RANKINGS_START, (command, e) -> {
             String serverId = e.getGuildId().get().asString();
             String channel = Commander.getMandatoryArgument(command, e.getMessage(), "channel");
-
+            String channelName = e.getMessage().getChannel().map(c -> (GuildMessageChannel) c).map(c -> c.getName()).block();
             //Start task for weekly summary + task to check for changes
 
             if (rankingsRepo.rankingsExist(channel)) {
@@ -80,7 +120,7 @@ public class AngelCompetition {
             }
 
             Rankings rankings = new Rankings(channel, "", RankingsMode.MAIN_ROLE.value);
-            rankingsRepo.addRankings(rankings, serverId, e.getMessage().getChannel().map(c -> (GuildMessageChannel) c).map(c -> c.getName()).block());
+            rankingsRepo.addRankings(rankings, serverId, channelName);
 
             createTask(channel);
 
@@ -98,6 +138,54 @@ public class AngelCompetition {
 
             sendMessage(event.getMessage().getChannel(), serverId, "ranking_system_enabled", sb.toString());
 
+        });
+    }
+
+    public static String getSlashArgument(SlashCommandEvent event, String arg)
+    {
+        return event.getOption(arg)
+            .flatMap(ApplicationCommandInteractionOption::getValue)
+            .map(ApplicationCommandInteractionOptionValue::asString)
+            .orElse(null);
+    }
+
+    public static Mono<Void> onSlashRankingsEnroll(SlashCommandEvent event) {
+        return slashCommandMessage(event, RANKINGS_ENROLL, (command, e) -> {
+            String serverId = event.getInteraction().getGuildId().map(Snowflake::asString).get();
+            String channel = getSlashArgument(e, "channel");
+            String battletag = getSlashArgument(e, "battletag");
+            String mainRole = getSlashArgument(e, "mainrole");
+
+
+            if (Roles.from(mainRole) == null) {
+                event.reply(getLocaleString(serverId,  "invalid_role")).block();
+                return;
+            }
+
+            if (!rankingsRepo.rankingsExist(channel)) {
+                event.reply(getLocaleString(serverId,  "ranking_system_not_created")).block();
+                return;
+            }
+
+            event.replyEphemeral("Adding player...").block();
+
+            if (owApi.getPlayerElos(battletag) == null) {
+                event.getInteractionResponse().createFollowupMessage(getLocaleString(serverId,  "ranking_system_incorrect_profile")).block();
+                event.getInteractionResponse().deleteInitialResponse();
+                return;
+            }
+
+            Rankings rankings = rankingsRepo.getRanking(channel);
+            Player player = new Player(battletag, mainRole, 0, 0, 0, 0, false);
+            rankings.setRanking(player);
+
+            rankingsRepo.updateRankings(rankings);
+
+
+
+            createCommands(e.getClient().getRestClient(), event.getInteraction().getGuildId().get());
+
+            event.reply(getLocaleString(serverId,  "ranking_system_player_enrolled")).block();
         });
     }
 

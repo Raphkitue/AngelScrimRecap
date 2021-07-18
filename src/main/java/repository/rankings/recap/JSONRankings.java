@@ -111,7 +111,7 @@ public class JSONRankings implements IRankingsRepository {
                 return jsonObject1;
             }).collect(Collectors.toList()));
 
-            jsonObject.put("channs", servRanks.entries().stream().map(entry -> {
+            jsonObject.put("channs", channelNames.entrySet().stream().map(entry -> {
                 JSONObject jsonObject1 = new JSONObject();
                 jsonObject1.put(entry.getKey(), entry.getValue());
                 return jsonObject1;

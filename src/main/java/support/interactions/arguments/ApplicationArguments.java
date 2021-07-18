@@ -77,8 +77,8 @@ public class ApplicationArguments {
     private static List<ApplicationCommandOptionChoiceData> getSpecificChoices(List<Pair<String,String>> choices) {
         return choices.stream()
             .map(choice -> ApplicationCommandOptionChoiceData.builder()
-                .value(choice.getValue1())
-                .name(choice.getValue0())
+                .value(choice.getValue0())
+                .name(choice.getValue1())
                 .build())
             .collect(Collectors.toList());
     }

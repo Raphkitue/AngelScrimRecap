@@ -13,6 +13,7 @@ import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadPoolExecutor;
@@ -39,9 +40,7 @@ public class Main
     public static void main(String[] args) throws IOException
     {
 
-        //String token = System.getenv("DISCORD_TOKEN");
-        String token = "Nzg3MzQ4MjgxMTQyNTQyMzY2.X9TpOg.1PuKldq-LKOJjZ38USgoR54wbwo";
-
+        String token = System.getenv("DISCORD_TOKEN");
         client = DiscordClient.create(token).login().block();
 
 
@@ -83,8 +82,10 @@ public class Main
         eventHandlers.add(AngelTeam::onTeamSetBtag);
         channelCommands.add(AngelTeam::onTeamAddRole);
 
+        List<SlashEventHandler> slashEvents = new LinkedList<>();
 
-
+        slashEvents.add(AngelCompetition::onSlashStartRankings);
+        slashEvents.add(AngelCompetition::onSlashRankingsEnroll);
         //Ajouter elo moyen teams
         //Create a master leaderboard with merged leaderboards
 
@@ -111,7 +112,8 @@ public class Main
             commandHandler(client, eventHandlers),
             teamMemberMessages(client, teamCommands),
             correctChannelMessages(client, channelCommands),
-            captainMessages(client, captainCommands)
+            captainMessages(client, captainCommands),
+            guildSlashCommandHandler(client, slashEvents)
         )
             .subscribe();
 
