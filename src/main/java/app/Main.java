@@ -50,8 +50,8 @@ public class Main
         List<EventHandler> channelCommands = new ArrayList<>();
 
         //eventHandlers.add(AngelBot::logMessages);
+        //eventHandlers.add(AngelCompetition::onDebug);
         eventHandlers.add(AngelBot::onSetupMessage);
-        eventHandlers.add(AngelCompetition::onDebug);
         eventHandlers.add(AngelBot::onSetupDelay);
         eventHandlers.add(AngelBot::onSetupLang);
         eventHandlers.add(AngelBot::onHelp);
@@ -89,6 +89,7 @@ public class Main
         slashEvents.add(AngelCompetition::onSlashRankingsDelete);
         slashEvents.add(AngelCompetition::onSlashRankingsRemove);
         slashEvents.add(AngelCompetition::onSlashRankingsUpdate);
+
         //Ajouter elo moyen teams
         //Create a master leaderboard with merged leaderboards
 
@@ -102,6 +103,7 @@ public class Main
         assert client != null;
         //AngelCompetition.createCommands(client.getRestClient());
         Main.appId = client.getApplicationInfo().map(ApplicationInfo::getId).block().asLong();
+        AngelCompetition.createGlobalCommands(client.getRestClient());
 
         client.getRestClient().getApplicationService().getGlobalApplicationCommands(appId)
             .map(c -> client.getRestClient().getApplicationService().deleteGlobalApplicationCommand(appId, Long.parseLong(c.id())))

@@ -223,9 +223,7 @@ public class AngelCompetition {
 
 
     public static Mono<Void> onDebug(MessageCreateEvent event) {
-        return commandMessage(event, DEBUG, (command, e) -> {
-            createCommands(Main.client.getRestClient(), e.getGuildId().get());
-        });
+        return commandMessage(event, DEBUG, (command, e) -> createCommands(Main.client.getRestClient(), e.getGuildId().get()));
     }
 
     private static ApplicationCommandRequest getCommandRequest(model.commands.commands.Rankings command, Function<Commands, List<ApplicationCommandOptionData>> optionSupplier) {
@@ -236,6 +234,15 @@ public class AngelCompetition {
             .build();
     }
 
+    public static void createGlobalCommands(RestClient client)
+    {
+        ApplicationService appService = client.getApplicationService();
+
+        appService.createGlobalApplicationCommand(Main.appId,
+                getCommandRequest(RANKINGS_START, c -> ApplicationArguments.getOptions(RANKINGS_START)))
+            .block();
+    }
+
     public static void createCommands(RestClient client, Snowflake guildId) {
 
         //List<ApplicationCommandData> globalCommands = client.getApplicationService().getGuildApplicationCommands(Main.appId, guildId.asLong())
@@ -244,8 +251,6 @@ public class AngelCompetition {
 
         ApplicationService appService = client.getApplicationService();
         List<Mono<ApplicationCommandData>> appCommands = List.of(
-            appService.createGuildApplicationCommand(Main.appId, guildId.asLong(),
-                getCommandRequest(RANKINGS_START, c -> ApplicationArguments.getOptions(RANKINGS_START))),
             appService.createGuildApplicationCommand(Main.appId, guildId.asLong(),
                 getCommandRequest(RANKINGS_DELETE,
                     c -> ApplicationArguments.getOptions(RANKINGS_DELETE,
@@ -401,7 +406,7 @@ public class AngelCompetition {
 
             displayScores(serverId, channel);
 
-            event.getInteractionResponse().createFollowupMessage("Ranking system deleted").block();
+            event.getInteractionResponse().createFollowupMessage("Ranking system updated").block();
         });
     }
 
