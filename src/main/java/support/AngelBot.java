@@ -58,7 +58,7 @@ public class AngelBot
             log.info("Creating channel for server");
             String serverId = event.getGuildId().get().asString();
 
-            String channelId = Commander.getArgument(command, ev.getMessage().getContent(), "#channel").orElse(null);
+            String channelId = Commander.getArgument(command, ev.getMessage().getContent(), "channel").orElse(null);
             if (channelId != null)
             {
                 GuildChannel channel = ev.getGuild().flatMap(guild -> guild.getChannelById(Snowflake.of(channelId))).block();

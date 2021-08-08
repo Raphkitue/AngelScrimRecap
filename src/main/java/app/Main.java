@@ -4,38 +4,45 @@ import static support.AngelBot.readyHandler;
 
 import com.sun.net.httpserver.HttpServer;
 import controller.RankingsController;
+import discord4j.common.util.Snowflake;
 import discord4j.core.DiscordClient;
 import discord4j.core.GatewayDiscordClient;
+import discord4j.core.event.domain.interaction.SlashCommandEvent;
 import discord4j.core.event.domain.message.MessageCreateEvent;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
+
+import discord4j.core.object.entity.ApplicationInfo;
+import discord4j.discordjson.json.ApplicationCommandData;
+import discord4j.rest.interaction.Interactions;
 import reactor.core.publisher.Mono;
 import reactor.util.Logger;
 import reactor.util.Loggers;
-import support.AngelBot;
-import support.AngelCompetition;
-import support.AngelRecap;
-import support.AngelTeam;
-import support.EventHandler;
+import repository.rankings.recap.IRankingsRepository;
+import support.*;
 
 public class Main
 {
 
     private static final Logger log = Loggers.getLogger(Main.class);
 
+    public static GatewayDiscordClient client;
+    public static long appId;
+
     public static void main(String[] args) throws IOException
     {
 
         String token = System.getenv("DISCORD_TOKEN");
+        client = DiscordClient.create(token).login().block();
 
-        GatewayDiscordClient client = DiscordClient.create(token).login().block();
 
         List<EventHandler> eventHandlers = new ArrayList<>();
         List<EventHandler> teamCommands = new ArrayList<>();
@@ -43,6 +50,7 @@ public class Main
         List<EventHandler> channelCommands = new ArrayList<>();
 
         //eventHandlers.add(AngelBot::logMessages);
+        //eventHandlers.add(AngelCompetition::onDebug);
         eventHandlers.add(AngelBot::onSetupMessage);
         eventHandlers.add(AngelBot::onSetupDelay);
         eventHandlers.add(AngelBot::onSetupLang);
@@ -74,6 +82,13 @@ public class Main
         eventHandlers.add(AngelTeam::onTeamSetBtag);
         channelCommands.add(AngelTeam::onTeamAddRole);
 
+        List<SlashEventHandler> slashEvents = new LinkedList<>();
+
+        slashEvents.add(AngelCompetition::onSlashStartRankings);
+        slashEvents.add(AngelCompetition::onSlashRankingsEnroll);
+        slashEvents.add(AngelCompetition::onSlashRankingsDelete);
+        slashEvents.add(AngelCompetition::onSlashRankingsRemove);
+        slashEvents.add(AngelCompetition::onSlashRankingsUpdate);
 
         //Ajouter elo moyen teams
         //Create a master leaderboard with merged leaderboards
@@ -86,6 +101,14 @@ public class Main
 
 
         assert client != null;
+        //AngelCompetition.createCommands(client.getRestClient());
+        Main.appId = client.getApplicationInfo().map(ApplicationInfo::getId).block().asLong();
+        AngelCompetition.createGlobalCommands(client.getRestClient());
+
+        client.getRestClient().getApplicationService().getGlobalApplicationCommands(appId)
+            .map(c -> client.getRestClient().getApplicationService().deleteGlobalApplicationCommand(appId, Long.parseLong(c.id())))
+            .then()
+            .block();
 
         RankingsController.initialize(client);
 
@@ -94,7 +117,8 @@ public class Main
             commandHandler(client, eventHandlers),
             teamMemberMessages(client, teamCommands),
             correctChannelMessages(client, channelCommands),
-            captainMessages(client, captainCommands)
+            captainMessages(client, captainCommands),
+            guildSlashCommandHandler(client, slashEvents)
         )
             .subscribe();
 
@@ -134,6 +158,15 @@ public class Main
         return baseCommandHandler(client, eventHandlers, MessageFilters::teamReadyFilter, MessageFilters::captainFilter);
     }
 
+    public static Mono<Void> guildSlashCommandHandler(GatewayDiscordClient client, List<SlashEventHandler> eventHandlers)
+    {
+        return client.on(SlashCommandEvent.class,
+            event -> id -> Mono.when(eventHandlers.stream()
+            .map(handler -> handler.onMessageCreate(event))
+                .collect(Collectors.toList())
+            ))
+            .then();
+    }
 
     @SafeVarargs
     public static Mono<Void> baseCommandHandler(GatewayDiscordClient client, List<EventHandler> eventHandlers, Predicate<MessageCreateEvent> ...predicates)

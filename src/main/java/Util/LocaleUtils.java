@@ -38,8 +38,12 @@ public class LocaleUtils
             lang = install.getLang();
         else
             lang = "en";
-        String localized = locales.get(lang).getString(id);
+        return getDirectLocaleString(lang, id, additions);
+    }
 
+    public static String getDirectLocaleString(String lang, String id, String ...additions)
+    {
+        String localized = locales.get(lang).getString(id);
 
         Pattern pattern = Pattern.compile("\\{}");
         Matcher matcher = pattern.matcher(localized);

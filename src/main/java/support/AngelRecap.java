@@ -48,15 +48,15 @@ public class AngelRecap
 {
 
     private static final List<ReactionEmoji> voteEmojis = Arrays.asList(
-        ReactionEmoji.unicode("1️⃣"),
-        ReactionEmoji.unicode("2️⃣"),
-        ReactionEmoji.unicode("3️⃣"),
-        ReactionEmoji.unicode("4️⃣"),
-        ReactionEmoji.unicode("5️⃣"),
-        ReactionEmoji.unicode("6️⃣"),
-        ReactionEmoji.unicode("7️⃣⃣"),
-        ReactionEmoji.unicode("8️⃣"),
-        ReactionEmoji.unicode("9️⃣")
+        ReactionEmoji.unicode("1"),
+        ReactionEmoji.unicode("2"),
+        ReactionEmoji.unicode("3"),
+        ReactionEmoji.unicode("4"),
+        ReactionEmoji.unicode("5"),
+        ReactionEmoji.unicode("6"),
+        ReactionEmoji.unicode("7"),
+        ReactionEmoji.unicode("8"),
+        ReactionEmoji.unicode("9")
     );
 
     private static final IInstallsRepository installsRepo = DependenciesContainer.getInstance().getInstallsRepo();
@@ -143,7 +143,7 @@ public class AngelRecap
                 return;
             }
 
-            String userid = Commander.getArgument(command, e.getMessage().getContent(), "@username")
+            String userid = Commander.getArgument(command, e.getMessage().getContent(), "username")
                 .filter(s -> teamsRepository.getTeamById(recap.getTeamId())
                     .getMembers().stream()
                     .filter(user -> user.getUserId().equals(e.getMessage().getAuthor().get().getId().asString()))

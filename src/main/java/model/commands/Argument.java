@@ -1,42 +1,79 @@
 package model.commands;
 
+import discord4j.rest.util.ApplicationCommandOptionType;
+
 import java.util.Objects;
 
 public class Argument
 {
     public enum Necessity
     {
-        OPTIONAL,
-        MANDATORY;
+        OPTIONAL(false),
+        MANDATORY(true);
+
+        private boolean required;
+
+        Necessity(boolean required) {
+            this.required = required;
+        }
+
+        public boolean isRequired() {
+            return required;
+        }
     }
 
-    private String name;
-    private Necessity necessity;
+    public enum ArgumentType
+    {
+        BATTLETAG,
+        EXISTING_RANKING,
+        CHANNEL,
+        USERNAME,
+        SPECIFIC,
+        STRING;
+    }
 
-    private Argument(String name, Necessity necessity)
+    private final String name;
+    private final String description;
+    private Necessity necessity;
+    private final ArgumentType argumentType;
+
+    private Argument(String name, String description, ArgumentType type, Necessity necessity)
     {
         this.name = name;
+        this.description = description;
+        this.argumentType = type;
         this.necessity = necessity;
     }
 
-    private Argument(String name)
+    private Argument(String name, String description, ArgumentType type)
     {
         this.name = name;
+        this.description = description;
+        this.argumentType = type;
     }
 
-    public static Argument optional(String name)
+    public static Argument optional(String name, String description, ArgumentType type)
     {
-        return new Argument(name, Necessity.OPTIONAL);
+        return new Argument(name, description, type, Necessity.OPTIONAL);
     }
 
-    public static Argument mandatory(String name)
+    public static Argument mandatory(String name, String description, ArgumentType type)
     {
-        return new Argument(name, Necessity.MANDATORY);
+        return new Argument(name, description, type, Necessity.MANDATORY);
     }
 
-    public static Argument any(String name)
+    public static Argument any(String name, String description, ArgumentType type)
     {
-        return new Argument(name);
+        return new Argument(name, description, type);
+    }
+
+    public String getDescription() {
+        return description;
+    }
+
+    public ArgumentType getArgumentType()
+    {
+        return argumentType;
     }
 
     public String getName()

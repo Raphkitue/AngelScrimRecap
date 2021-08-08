@@ -168,7 +168,7 @@ public class AngelTeam
         return commandMessage(event, SETUP_VOD, (command, e) -> {
             String serverId = e.getGuildId().get().asString();
 
-            String argument = Commander.getMandatoryArgument(command, e.getMessage(), "#channel");
+            String argument = Commander.getMandatoryArgument(command, e.getMessage(), "channel");
 
             Team team = getTeamFromArgument(command, serverId, e.getMessage());
 
@@ -186,7 +186,7 @@ public class AngelTeam
         return commandMessage(event, SETUP_RECAP, (command, e) -> {
             String serverId = e.getGuildId().get().asString();
 
-            String argument = Commander.getMandatoryArgument(command, e.getMessage(), "#channel");
+            String argument = Commander.getMandatoryArgument(command, e.getMessage(), "channel");
 
             Team team = getTeamFromArgument(command, serverId, e.getMessage());
 
@@ -203,7 +203,7 @@ public class AngelTeam
     {
         return commandMessage(event, TEAM_ADD_ROLE, (command, e) -> {
             String serverId = e.getGuildId().get().asString();
-            String roleId = Commander.getMandatoryArgument(command, e.getMessage(), "@rolename");
+            String roleId = Commander.getMandatoryArgument(command, e.getMessage(), "rolename");
 
             Team team = getTeamFromArgument(command, serverId, e.getMessage());
 
@@ -239,7 +239,7 @@ public class AngelTeam
     {
         return commandMessage(event, TEAM_ADD_USER, (command, e) -> {
             String serverId = e.getGuildId().get().asString();
-            String username = Commander.getMandatoryArgument(command, e.getMessage(), "@username");
+            String username = Commander.getMandatoryArgument(command, e.getMessage(), "username");
 
             Team team = getTeamFromArgument(command, serverId, e.getMessage());
 
@@ -300,7 +300,7 @@ public class AngelTeam
     {
         return commandMessage(event, TEAM_REMOVE_USER, (command, e) -> {
             String serverId = e.getGuildId().get().asString();
-            String username = Commander.getMandatoryArgument(command, e.getMessage(), "@username");
+            String username = Commander.getMandatoryArgument(command, e.getMessage(), "username");
 
             Team team = getTeamFromArgument(command, serverId, e.getMessage());
 
@@ -328,7 +328,7 @@ public class AngelTeam
     {
         return commandMessage(event, TEAM_SET_CAPTAIN, (command, e) -> {
             String serverId = e.getGuildId().get().asString();
-            String userId = Commander.getMandatoryArgument(command, e.getMessage(), "@username");
+            String userId = Commander.getMandatoryArgument(command, e.getMessage(), "username");
 
             Team team = getTeamFromArgument(command, serverId, e.getMessage());
             if (team == null)
@@ -354,7 +354,7 @@ public class AngelTeam
     {
         return commandMessage(event, TEAM_SET_BTAG, (command, e) -> {
             String serverId = e.getGuildId().get().asString();
-            String userId = Commander.getMandatoryArgument(command, e.getMessage(), "@username");
+            String userId = Commander.getMandatoryArgument(command, e.getMessage(), "username");
             String btag = Commander.getMandatoryArgument(command, e.getMessage(), "battletag");
 
             Team team = getTeamFromArgument(command, serverId, e.getMessage());
