@@ -1,6 +1,6 @@
-package Util;
+package util;
 
-import static Util.LocaleUtils.getLocaleString;
+import static util.LocaleUtils.getLocaleString;
 
 import com.google.common.base.Splitter;
 import discord4j.common.util.Snowflake;

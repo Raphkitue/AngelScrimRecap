@@ -1,6 +1,6 @@
 package model.rankings;
 
-import Util.Jsonable;
+import util.Jsonable;
 import org.json.simple.JSONObject;
 
 public class Player implements Jsonable {

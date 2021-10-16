@@ -1,6 +1,6 @@
 package model.scrims;
 
-import Util.Jsonable;
+import util.Jsonable;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;

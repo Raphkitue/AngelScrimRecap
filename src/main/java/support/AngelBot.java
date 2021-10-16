@@ -1,8 +1,8 @@
 package support;
 
-import static Util.LocaleUtils.getLocaleString;
-import static Util.MessageUtils.commandMessage;
-import static Util.MessageUtils.sendMessage;
+import static util.LocaleUtils.getLocaleString;
+import static util.MessageUtils.commandMessage;
+import static util.MessageUtils.sendMessage;
 import static model.commands.commands.Setup.HELP;
 import static model.commands.commands.Setup.SETUP;
 import static model.commands.commands.Setup.SETUP_DELAY;

@@ -1,9 +1,9 @@
 package support;
 
-import static Util.LocaleUtils.getLocaleString;
-import static Util.MessageUtils.commandMessage;
-import static Util.MessageUtils.sendEmbed;
-import static Util.MessageUtils.sendMessage;
+import static util.LocaleUtils.getLocaleString;
+import static util.MessageUtils.commandMessage;
+import static util.MessageUtils.sendEmbed;
+import static util.MessageUtils.sendMessage;
 import static model.commands.commands.Recap.RECAP_ADD_LINE;
 import static model.commands.commands.Recap.RECAP_ADD_REPLAY;
 import static model.commands.commands.Recap.RECAP_FINISH;

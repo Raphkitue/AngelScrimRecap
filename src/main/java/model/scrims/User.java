@@ -1,6 +1,6 @@
 package model.scrims;
 
-import Util.Jsonable;
+import util.Jsonable;
 import java.util.Objects;
 import org.json.simple.JSONObject;
 

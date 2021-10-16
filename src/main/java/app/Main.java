@@ -4,7 +4,6 @@ import static support.AngelBot.readyHandler;
 
 import com.sun.net.httpserver.HttpServer;
 import controller.RankingsController;
-import discord4j.common.util.Snowflake;
 import discord4j.core.DiscordClient;
 import discord4j.core.GatewayDiscordClient;
 import discord4j.core.event.domain.interaction.SlashCommandEvent;
@@ -21,13 +20,11 @@ import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 import discord4j.core.object.entity.ApplicationInfo;
-import discord4j.discordjson.json.ApplicationCommandData;
-import discord4j.rest.interaction.Interactions;
 import reactor.core.publisher.Mono;
 import reactor.util.Logger;
 import reactor.util.Loggers;
-import repository.rankings.recap.IRankingsRepository;
 import support.*;
+import support.slashcommands.RankingsSlashHandlers;
 
 public class Main
 {
@@ -84,11 +81,12 @@ public class Main
 
         List<SlashEventHandler> slashEvents = new LinkedList<>();
 
-        slashEvents.add(AngelCompetition::onSlashStartRankings);
-        slashEvents.add(AngelCompetition::onSlashRankingsEnroll);
-        slashEvents.add(AngelCompetition::onSlashRankingsDelete);
-        slashEvents.add(AngelCompetition::onSlashRankingsRemove);
-        slashEvents.add(AngelCompetition::onSlashRankingsUpdate);
+        slashEvents.add(RankingsSlashHandlers::onStart);
+        slashEvents.add(RankingsSlashHandlers::onEnroll);
+        slashEvents.add(RankingsSlashHandlers::onRemovePlayer);
+        slashEvents.add(RankingsSlashHandlers::onDelete);
+        slashEvents.add(RankingsSlashHandlers::onUpdate);
+        slashEvents.add(RankingsSlashHandlers::onRename);
 
         //Ajouter elo moyen teams
         //Create a master leaderboard with merged leaderboards
@@ -103,12 +101,13 @@ public class Main
         assert client != null;
         //AngelCompetition.createCommands(client.getRestClient());
         Main.appId = client.getApplicationInfo().map(ApplicationInfo::getId).block().asLong();
-        AngelCompetition.createGlobalCommands(client.getRestClient());
 
         client.getRestClient().getApplicationService().getGlobalApplicationCommands(appId)
             .map(c -> client.getRestClient().getApplicationService().deleteGlobalApplicationCommand(appId, Long.parseLong(c.id())))
             .then()
             .block();
+
+        AngelCompetition.createGlobalCommands(client.getRestClient());
 
         RankingsController.initialize(client);
 
@@ -124,7 +123,10 @@ public class Main
 
         ThreadPoolExecutor threadPoolExecutor = (ThreadPoolExecutor) Executors.newFixedThreadPool(10);
         HttpServer server = HttpServer.create(new InetSocketAddress("0.0.0.0", 8001), 0);
-        server.createContext("/", new DummyHandler());
+        APIHandler apiHandler = new APIHandler();
+        server.createContext("/", apiHandler.getBaseHandler());
+        server.createContext("/settings", apiHandler.getPostRankingsFileHandler());
+        server.createContext("/settings/get", apiHandler.getGetRankingsFileHandler());
         server.setExecutor(threadPoolExecutor);
         server.start();
     }
@@ -171,7 +173,6 @@ public class Main
     @SafeVarargs
     public static Mono<Void> baseCommandHandler(GatewayDiscordClient client, List<EventHandler> eventHandlers, Predicate<MessageCreateEvent> ...predicates)
     {
-
         return client.on(MessageCreateEvent.class,
             event -> id -> Mono.when(eventHandlers.stream()
                 .filter(e -> Arrays.stream(predicates).allMatch(p -> p.test(event)))
