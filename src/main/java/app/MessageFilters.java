@@ -1,6 +1,6 @@
 package app;
 
-import static Util.MessageUtils.getServerIdFromMessage;
+import static util.MessageUtils.getServerIdFromMessage;
 
 import discord4j.core.event.domain.message.MessageCreateEvent;
 import reactor.util.Logger;

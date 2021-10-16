@@ -1,7 +1,7 @@
 package controller;
 
-import static Util.LocaleUtils.getLocaleString;
-import static Util.MessageUtils.sendEmbed;
+import static util.LocaleUtils.getLocaleString;
+import static util.MessageUtils.sendEmbed;
 
 import app.DependenciesContainer;
 import controller.view.IRankView;
@@ -29,7 +29,7 @@ import net.owapi.IOWAPI;
 import org.javatuples.Pair;
 import org.javatuples.Quartet;
 import reactor.core.publisher.Mono;
-import repository.rankings.recap.IRankingsRepository;
+import repository.rankings.IRankingsRepository;
 import repository.teams.ITeamsRepository;
 
 public class RankingsController
@@ -105,7 +105,7 @@ public class RankingsController
 
         if (messageChannel == null)
         {
-            rankingsRepo.deleteRankings(rankings.getChannelId());
+            rankingsRepo.deleteRankings(serverId, rankings.getChannelId());
             return;
         }
 

@@ -9,7 +9,7 @@ import model.commands.Commands;
 import org.javatuples.Pair;
 import reactor.util.Logger;
 import reactor.util.Loggers;
-import repository.rankings.recap.IRankingsRepository;
+import repository.rankings.IRankingsRepository;
 
 import java.util.ArrayList;
 import java.util.HashMap;

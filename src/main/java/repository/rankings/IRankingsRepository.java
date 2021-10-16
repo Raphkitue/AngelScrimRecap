@@ -1,4 +1,4 @@
-package repository.rankings.recap;
+package repository.rankings;
 
 import java.util.Collection;
 import java.util.Date;
@@ -27,5 +27,10 @@ public interface IRankingsRepository {
 
     boolean rankingsExist(String channelId);
 
-    void deleteRankings(String channelId);
+    void deleteRankings(String serverId, String channelId);
+
+    boolean nameExists(String name);
+    void renameRankings(String channelId, String name);
+
+    void reload();
 }

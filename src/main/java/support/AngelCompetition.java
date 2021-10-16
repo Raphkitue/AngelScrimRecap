@@ -1,8 +1,8 @@
 package support;
 
-import static Util.LocaleUtils.getDirectLocaleString;
-import static Util.LocaleUtils.getLocaleString;
-import static Util.MessageUtils.*;
+import static util.LocaleUtils.getDirectLocaleString;
+import static util.LocaleUtils.getLocaleString;
+import static util.MessageUtils.*;
 import static controller.RankingsController.createTask;
 import static controller.RankingsController.displayScores;
 import static model.commands.commands.Rankings.*;
@@ -14,24 +14,18 @@ import discord4j.core.event.domain.interaction.SlashCommandEvent;
 import discord4j.core.event.domain.message.MessageCreateEvent;
 import discord4j.core.object.command.ApplicationCommandInteractionOption;
 import discord4j.core.object.command.ApplicationCommandInteractionOptionValue;
-import discord4j.core.object.command.Interaction;
-import discord4j.core.object.entity.channel.Channel;
 import discord4j.core.object.entity.channel.GuildMessageChannel;
 import discord4j.core.object.reaction.ReactionEmoji;
 
-import java.time.Duration;
 import java.util.*;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import discord4j.discordjson.json.ApplicationCommandData;
-import discord4j.discordjson.json.ApplicationCommandOptionChoiceData;
 import discord4j.discordjson.json.ApplicationCommandOptionData;
 import discord4j.discordjson.json.ApplicationCommandRequest;
 import discord4j.rest.RestClient;
-import discord4j.rest.interaction.Interactions;
 import discord4j.rest.service.ApplicationService;
-import discord4j.rest.util.ApplicationCommandOptionType;
 import model.commands.Argument;
 import model.commands.Commander;
 import model.commands.Commands;
@@ -40,12 +34,10 @@ import model.rankings.Rankings;
 import model.rankings.Roles;
 import net.owapi.IOWAPI;
 import reactor.core.publisher.Mono;
-import reactor.netty.http.server.HttpServer;
 import reactor.util.Logger;
 import reactor.util.Loggers;
-import repository.rankings.recap.IRankingsRepository;
+import repository.rankings.IRankingsRepository;
 import support.interactions.arguments.ApplicationArguments;
-import support.interactions.handlers.NewLeaderboardInteration;
 
 public class AngelCompetition {
 
@@ -72,47 +64,11 @@ public class AngelCompetition {
     private static final IRankingsRepository rankingsRepo = DependenciesContainer.getInstance().getRankingsRepo();
 
 
-    public static Mono<Void> onSlashStartRankings(SlashCommandEvent event) {
-        return slashCommandMessage(event, RANKINGS_START, (command, e) -> {
-            String serverId = event.getInteraction().getGuildId().map(Snowflake::asString).get();
-            GuildMessageChannel discordChannel = event.getOption("channel")
-                .flatMap(ApplicationCommandInteractionOption::getValue)
-                .map(ApplicationCommandInteractionOptionValue::asChannel)
-                .orElse(Mono.empty())
-                .filter(channelMono -> channelMono instanceof GuildMessageChannel)
-                .map(c -> (GuildMessageChannel) c)
-                .block();
-
-            if (discordChannel == null) {
-                event.reply("Channel should be text").block();
-                return;
-            }
-            event.acknowledge().block();
-
-            String channel = discordChannel.getId().asString();
-            String channelName = discordChannel.getName();
-
-            if (rankingsRepo.rankingsExist(channel)) {
-                event.getInteractionResponse().createFollowupMessage(getLocaleString(serverId,  "ranking_system_already_created")).block();
-                return;
-            }
-
-            Rankings rankings = new Rankings(channel, "", RankingsMode.MAIN_ROLE.value);
-            rankingsRepo.addRankings(rankings, serverId, channelName);
-
-            createTask(channel);
-
-            event.getInteractionResponse().createFollowupMessage(getLocaleString(serverId,  "ranking_system_enabled")).block();
-            createCommands(e.getClient().getRestClient(), event.getInteraction().getGuildId().get());
-
-        });
-    }
-
     public static Mono<Void> onStartRankings(MessageCreateEvent event) {
         return commandMessage(event, RANKINGS_START, (command, e) -> {
             String serverId = e.getGuildId().get().asString();
             String channel = Commander.getMandatoryArgument(command, e.getMessage(), "channel");
-            String channelName = e.getMessage().getChannel().map(c -> (GuildMessageChannel) c).map(c -> c.getName()).block();
+            String ogChannelName = e.getMessage().getChannel().map(c -> (GuildMessageChannel) c).map(c -> c.getName()).block();
             //Start task for weekly summary + task to check for changes
 
             if (rankingsRepo.rankingsExist(channel)) {
@@ -120,6 +76,12 @@ public class AngelCompetition {
             }
 
             Rankings rankings = new Rankings(channel, "", RankingsMode.MAIN_ROLE.value);
+
+            String channelName = ogChannelName;
+            int i = 1;
+            while (rankingsRepo.nameExists(channelName)) {
+                channelName = ogChannelName + "(" + i + ")";
+            }
             rankingsRepo.addRankings(rankings, serverId, channelName);
 
             createTask(channel);
@@ -141,50 +103,11 @@ public class AngelCompetition {
         });
     }
 
-    public static String getSlashArgument(SlashCommandEvent event, String arg)
-    {
+    public static String getSlashArgument(SlashCommandEvent event, String arg) {
         return event.getOption(arg)
             .flatMap(ApplicationCommandInteractionOption::getValue)
             .map(ApplicationCommandInteractionOptionValue::asString)
             .orElse(null);
-    }
-
-    public static Mono<Void> onSlashRankingsEnroll(SlashCommandEvent event) {
-        return slashCommandMessage(event, RANKINGS_ENROLL, (command, e) -> {
-            String serverId = event.getInteraction().getGuildId().map(Snowflake::asString).get();
-            String channel = getSlashArgument(e, "channel");
-            String battletag = getSlashArgument(e, "battletag");
-            String mainRole = getSlashArgument(e, "mainrole");
-
-            if (Roles.from(mainRole) == null) {
-                event.reply(getLocaleString(serverId,  "invalid_role")).block();
-                return;
-            }
-
-            if (!rankingsRepo.rankingsExist(channel)) {
-                event.reply(getLocaleString(serverId,  "ranking_system_not_created")).block();
-                return;
-            }
-
-            //event.replyEphemeral("Adding player...").block();
-            event.acknowledgeEphemeral().block();
-
-            if (owApi.getPlayerElos(battletag) == null) {
-                event.getInteractionResponse().createFollowupMessage(getLocaleString(serverId,  "ranking_system_incorrect_profile")).block();
-                event.getInteractionResponse().deleteInitialResponse();
-                return;
-            }
-
-            Rankings rankings = rankingsRepo.getRanking(channel);
-            Player player = new Player(battletag, mainRole, 0, 0, 0, 0, false);
-            rankings.setRanking(player);
-
-            rankingsRepo.updateRankings(rankings);
-
-            createCommands(e.getClient().getRestClient(), event.getInteraction().getGuildId().get());
-
-            event.getInteractionResponse().createFollowupMessage(getLocaleString(serverId,  "ranking_system_player_enrolled", battletag)).block();
-        });
     }
 
     public static Mono<Void> onRankingsEnroll(MessageCreateEvent event) {
@@ -234,8 +157,7 @@ public class AngelCompetition {
             .build();
     }
 
-    public static void createGlobalCommands(RestClient client)
-    {
+    public static void createGlobalCommands(RestClient client) {
         ApplicationService appService = client.getApplicationService();
 
         appService.createGlobalApplicationCommand(Main.appId,
@@ -270,36 +192,16 @@ public class AngelCompetition {
             appService.createGuildApplicationCommand(Main.appId, guildId.asLong(),
                 getCommandRequest(RANKINGS_REMOVE, c -> ApplicationArguments.getOptions(RANKINGS_REMOVE,
                     Collections.singletonMap(RANKINGS_REMOVE.getArgument("channel"), guildId.asString())
-                )))
+                ))),
+            appService.createGuildApplicationCommand(Main.appId, guildId.asLong(),
+                getCommandRequest(RANKINGS_RENAME,
+                    c -> ApplicationArguments.getOptions(RANKINGS_RENAME,
+                        Collections.singletonMap(RANKINGS_RENAME.getArgument("channel"), guildId.asString())
+                    )))
 
         );
 
         appCommands.forEach(Mono::block);
-    }
-
-    public static Mono<Void> onSlashRankingsDelete(SlashCommandEvent event) {
-        return slashCommandMessage(event, RANKINGS_DELETE, (command, e) -> {
-            String serverId = event.getInteraction().getGuildId().map(Snowflake::asString).get();
-            String channel = getSlashArgument(e, "channel");
-            String battletag = getSlashArgument(e, "battletag");
-
-            if (!rankingsRepo.rankingsExist(channel)) {
-                event.replyEphemeral(getLocaleString(serverId,  "ranking_system_not_created")).block();
-                return;
-            }
-
-            event.acknowledgeEphemeral().block();
-
-            Rankings rankings = rankingsRepo.getRanking(channel);
-
-            rankings.removeRanking(battletag);
-
-            rankingsRepo.updateRankings(rankings);
-
-            createCommands(e.getClient().getRestClient(), event.getInteraction().getGuildId().get());
-
-            event.getInteractionResponse().createFollowupMessage(getLocaleString(serverId,  "ranking_system_player_removed", battletag)).block();
-        });
     }
 
     public static Mono<Void> onRankingsDelete(MessageCreateEvent event) {
@@ -325,26 +227,6 @@ public class AngelCompetition {
         });
     }
 
-    public static Mono<Void> onSlashRankingsRemove(SlashCommandEvent event) {
-        return slashCommandMessage(event, RANKINGS_REMOVE, (command, e) -> {
-            String serverId = event.getInteraction().getGuildId().map(Snowflake::asString).get();
-            String channel = getSlashArgument(e, "channel");
-
-            if (!rankingsRepo.rankingsExist(channel)) {
-                event.replyEphemeral(getLocaleString(serverId,  "ranking_system_not_created")).block();
-                return;
-            }
-
-            event.acknowledgeEphemeral().block();
-
-            rankingsRepo.deleteRankings(channel);
-
-            createCommands(e.getClient().getRestClient(), event.getInteraction().getGuildId().get());
-
-            event.getInteractionResponse().createFollowupMessage("Ranking system deleted").block();
-        });
-    }
-
     public static Mono<Void> onRankingsRemove(MessageCreateEvent event) {
         return commandMessage(event, RANKINGS_REMOVE, (command, e) -> {
             String serverId = e.getGuildId().get().asString();
@@ -356,7 +238,7 @@ public class AngelCompetition {
                 return;
             }
 
-            rankingsRepo.deleteRankings(channel);
+            rankingsRepo.deleteRankings(serverId, channel);
 
             e.getMessage().addReaction(ReactionEmoji.unicode("✅")).block();
         });
@@ -391,25 +273,6 @@ public class AngelCompetition {
             e.getMessage().addReaction(ReactionEmoji.unicode("✅")).block();
         });
     }
-
-    public static Mono<Void> onSlashRankingsUpdate(SlashCommandEvent event) {
-        return slashCommandMessage(event, RANKINGS_UPDATE, (command, e) -> {
-            String serverId = event.getInteraction().getGuildId().map(Snowflake::asString).get();
-            String channel = getSlashArgument(e, "channel");
-
-            if (!rankingsRepo.rankingsExist(channel)) {
-                event.replyEphemeral(getLocaleString(serverId,  "ranking_system_not_created")).block();
-                return;
-            }
-
-            event.acknowledgeEphemeral().block();
-
-            displayScores(serverId, channel);
-
-            event.getInteractionResponse().createFollowupMessage("Ranking system updated").block();
-        });
-    }
-
 
     public static Mono<Void> onRankingsUpdate(MessageCreateEvent event) {
         return commandMessage(event, RANKINGS_UPDATE, (command, e) -> {

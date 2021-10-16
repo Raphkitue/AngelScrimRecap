@@ -1,4 +1,4 @@
-package repository.rankings.recap;
+package repository.rankings;
 
 import java.io.FileReader;
 import java.io.FileWriter;
@@ -30,11 +30,10 @@ public class JSONRankings implements IRankingsRepository {
 
     String fileName;
 
-    public void updateServs(GatewayDiscordClient client)
-    {
+    public synchronized void updateServs(GatewayDiscordClient client) {
         log.info("updating servs");
         for (String e : this.ranks.keySet()) {
-            if(!servRanks.containsValue(e)) {
+            if (!servRanks.containsValue(e)) {
                 client.getChannelById(Snowflake.of(e))
                     .map(f -> ((GuildMessageChannel) f))
                     .map(f -> {
@@ -50,53 +49,10 @@ public class JSONRankings implements IRankingsRepository {
 
     public JSONRankings(String filename) {
         this.fileName = filename;
-
-        //JSON parser object to parse read file
-        JSONParser jsonParser = new JSONParser();
-        try (FileReader reader = new FileReader(fileName)) {
-
-            //Read JSON file
-            JSONObject obj = (JSONObject) jsonParser.parse(reader);
-
-            JSONArray teams = (JSONArray) obj.get("rankings");
-            JSONArray serv = (JSONArray) obj.get("servs");
-            JSONArray channs = (JSONArray) obj.get("channs");
-            JSONArray daily = (JSONArray) obj.get("dailyRanks");
-
-            teams.forEach(object -> {
-                JSONObject jsonObject = (JSONObject) object;
-                String key = (String) jsonObject.keySet().stream().findFirst().get();
-                this.ranks.put(key, (Rankings) new Rankings().fromJson((JSONObject) jsonObject.get(key)));
-            });
-            if(serv != null)
-            {
-                serv.forEach(object -> {
-                    JSONObject jsonObject = (JSONObject) object;
-                    String key = (String) jsonObject.keySet().stream().findFirst().get();
-                    this.servRanks.putAll(key, Arrays.asList(((String) jsonObject.get(key)).split("DELIMITER")));
-                });
-                channs.forEach(object -> {
-                    JSONObject jsonObject = (JSONObject) object;
-                    String key = (String) jsonObject.keySet().stream().findFirst().get();
-                    this.channelNames.put(key, (String) jsonObject.get(key));
-                });
-            }
-
-            if (daily != null) {
-                daily.forEach(object -> {
-                    JSONObject jsonObject = (JSONObject) object;
-                    String key = (String) jsonObject.keySet().stream().findFirst().get();
-                    this.dailyRanks.put(key, (Rankings) new Rankings().fromJson((JSONObject) jsonObject.get(key)));
-                });
-            }
-
-
-        } catch (Exception e) {
-            ranks = new HashMap<>();
-        }
+        reload();
     }
 
-    private void storeRankings() {
+    private synchronized void storeRankings() {
         try (FileWriter file = new FileWriter(fileName)) {
             JSONObject jsonObject = new JSONObject();
             jsonObject.put("rankings", ranks.entrySet().stream().map(entry -> {
@@ -131,39 +87,39 @@ public class JSONRankings implements IRankingsRepository {
     }
 
     @Override
-    public Rankings getRanking(String channelId) {
+    public synchronized Rankings getRanking(String channelId) {
         return ranks.get(channelId);
     }
 
     @Override
-    public Rankings getDayRanking(String channelId, Date date) {
+    public synchronized Rankings getDayRanking(String channelId, Date date) {
         return dailyRanks.get(channelId + DateFormat.getDateInstance().format(date));
     }
 
     @Override
-    public void updateDayRankings(Rankings rankings, Date date) {
+    public synchronized void updateDayRankings(Rankings rankings, Date date) {
         dailyRanks.put(rankings.getChannelId() + DateFormat.getDateInstance().format(date), rankings);
         storeRankings();
     }
 
     @Override
-    public Collection<Rankings> getRankings() {
+    public synchronized Collection<Rankings> getRankings() {
         return ranks.values();
     }
 
     @Override
-    public List<Pair<String, String>> getRankingsForServer(String guildId) {
+    public synchronized List<Pair<String, String>> getRankingsForServer(String guildId) {
         return servRanks.get(guildId).stream().map(chan -> Pair.with(chan, channelNames.get(chan))).collect(Collectors.toList());
     }
 
     @Override
-    public void updateRankings(Rankings rankings) {
+    public synchronized void updateRankings(Rankings rankings) {
         ranks.put(rankings.getChannelId(), rankings);
         storeRankings();
     }
 
     @Override
-    public void addRankings(Rankings rankings, String serverId, String channelName) {
+    public synchronized void addRankings(Rankings rankings, String serverId, String channelName) {
         servRanks.put(serverId, rankings.getChannelId());
         ranks.put(rankings.getChannelId(), rankings);
         channelNames.put(rankings.getChannelId(), channelName);
@@ -171,14 +127,78 @@ public class JSONRankings implements IRankingsRepository {
     }
 
     @Override
-    public boolean rankingsExist(String channelId) {
+    public synchronized boolean rankingsExist(String channelId) {
         return ranks.containsKey(channelId);
     }
 
     @Override
-    public void deleteRankings(String channelId) {
+    public synchronized void deleteRankings(String serverId, String channelId) {
         ranks.remove(channelId);
+        channelNames.remove(channelId);
+        servRanks.remove(serverId, channelId);
         storeRankings();
     }
 
+    @Override
+    public synchronized boolean nameExists(String name) {
+        return channelNames.containsValue(name);
+    }
+
+    @Override
+    public synchronized void renameRankings(String channelId, String name) {
+        channelNames.put(channelId, name);
+        storeRankings();
+    }
+
+    @Override
+    public synchronized void reload() {
+
+        ranks.clear();
+        servRanks.clear();
+        dailyRanks.clear();
+        channelNames.clear();
+
+        //JSON parser object to parse read file
+        JSONParser jsonParser = new JSONParser();
+        try (FileReader reader = new FileReader(fileName)) {
+
+            //Read JSON file
+            JSONObject obj = (JSONObject) jsonParser.parse(reader);
+
+            JSONArray teams = (JSONArray) obj.get("rankings");
+            JSONArray serv = (JSONArray) obj.get("servs");
+            JSONArray channs = (JSONArray) obj.get("channs");
+            JSONArray daily = (JSONArray) obj.get("dailyRanks");
+
+            teams.forEach(object -> {
+                JSONObject jsonObject = (JSONObject) object;
+                String key = (String) jsonObject.keySet().stream().findFirst().get();
+                this.ranks.put(key, (Rankings) new Rankings().fromJson((JSONObject) jsonObject.get(key)));
+            });
+            if (serv != null) {
+                serv.forEach(object -> {
+                    JSONObject jsonObject = (JSONObject) object;
+                    String key = (String) jsonObject.keySet().stream().findFirst().get();
+                    this.servRanks.putAll(key, Arrays.asList(((String) jsonObject.get(key)).split("DELIMITER")));
+                });
+                channs.forEach(object -> {
+                    JSONObject jsonObject = (JSONObject) object;
+                    String key = (String) jsonObject.keySet().stream().findFirst().get();
+                    this.channelNames.put(key, (String) jsonObject.get(key));
+                });
+            }
+
+            if (daily != null) {
+                daily.forEach(object -> {
+                    JSONObject jsonObject = (JSONObject) object;
+                    String key = (String) jsonObject.keySet().stream().findFirst().get();
+                    this.dailyRanks.put(key, (Rankings) new Rankings().fromJson((JSONObject) jsonObject.get(key)));
+                });
+            }
+
+
+        } catch (Exception e) {
+            ranks = new HashMap<>();
+        }
+    }
 }

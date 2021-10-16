@@ -9,7 +9,8 @@ import model.commands.Commands;
 public enum Rankings implements Commands {
     DEBUG("debug", "marc"),
     RANKINGS_START("rankings create", "newlead",
-        Argument.mandatory("channel", "Placeholder", Argument.ArgumentType.CHANNEL)),
+        Argument.mandatory("channel", "Placeholder", Argument.ArgumentType.CHANNEL),
+        Argument.optional("name", "Placeholder", Argument.ArgumentType.STRING)),
     RANKINGS_ENROLL("rankings enroll", "enroll",
         Argument.mandatory("channel", "Placeholder", Argument.ArgumentType.EXISTING_RANKING),
         Argument.mandatory("battletag", "Placeholder", Argument.ArgumentType.STRING),
@@ -23,7 +24,10 @@ public enum Rankings implements Commands {
         Argument.mandatory("channel", "Placeholder", Argument.ArgumentType.EXISTING_RANKING),
         Argument.mandatory("confmode", "Placeholder", Argument.ArgumentType.SPECIFIC)),
     RANKINGS_UPDATE("rankings update", "updatelead",
-        Argument.mandatory("channel", "Placeholder", Argument.ArgumentType.EXISTING_RANKING));
+        Argument.mandatory("channel", "Placeholder", Argument.ArgumentType.EXISTING_RANKING)),
+    RANKINGS_RENAME("rankings rename", "renamelead",
+        Argument.mandatory("channel", "Placeholder", Argument.ArgumentType.EXISTING_RANKING),
+        Argument.mandatory("name", "Placeholder", Argument.ArgumentType.STRING));
 
 
     private final String command;

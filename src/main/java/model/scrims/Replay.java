@@ -1,6 +1,6 @@
 package model.scrims;
 
-import Util.Jsonable;
+import util.Jsonable;
 import org.json.simple.JSONObject;
 
 public class Replay implements Jsonable

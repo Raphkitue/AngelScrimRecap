@@ -1,7 +1,7 @@
 package model;
 
 
-import Util.Jsonable;
+import util.Jsonable;
 import org.json.simple.JSONObject;
 import reactor.util.annotation.NonNull;
 
