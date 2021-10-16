@@ -121,8 +121,9 @@ public class Main
         )
             .subscribe();
 
+        int port = System.getenv("API_PORT") != null ? Integer.parseInt(System.getenv("API_PORT")) : 80;
         ThreadPoolExecutor threadPoolExecutor = (ThreadPoolExecutor) Executors.newFixedThreadPool(10);
-        HttpServer server = HttpServer.create(new InetSocketAddress("0.0.0.0", 8001), 0);
+        HttpServer server = HttpServer.create(new InetSocketAddress("0.0.0.0", port), 0);
         APIHandler apiHandler = new APIHandler();
         server.createContext("/", apiHandler.getBaseHandler());
         server.createContext("/settings", apiHandler.getPostRankingsFileHandler());
